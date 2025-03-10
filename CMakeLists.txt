@@ -23,6 +23,7 @@ endif(DISABLE_SLOW_ASSERTS)
 
 add_subdirectory(lib)
 add_subdirectory(gui)
+add_subdirectory(cli/match)
 if(BUILD_TESTS)
 	add_subdirectory(test)
 endif(BUILD_TESTS)
