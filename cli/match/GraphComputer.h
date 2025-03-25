@@ -1,11 +1,7 @@
-//
-// Created by brandon on 3/6/25.
-//
-
 #ifndef GRAPHCOMPUTER_H
 #define GRAPHCOMPUTER_H
 
-#include <ProgressReporter.h>
+#include "ProgressReporter.h"
 
 #include "RiverData.h"
 

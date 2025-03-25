@@ -1,9 +1,8 @@
 #include "GraphComputer.h"
 
-#include <mscomplexcreator.h>
-#include <mscomplexsimplifier.h>
-#include <mstonetworkgraphcreator.h>
-
+#include "mscomplexcreator.h"
+#include "mscomplexsimplifier.h"
+#include "mstonetworkgraphcreator.h"
 
 GraphComputer::GraphComputer(
     std::string frameName,

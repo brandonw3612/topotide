@@ -1,14 +1,16 @@
 #include "Context.h"
+#include "boundaryreader.h"
+#include "GraphComputer.h"
 
-#include <boundaryreader.h>
-#include <GraphComputer.h>
 #include <iostream>
+#include <map>
 
-#include <io/esrigridreader.h>
-#include <io/gdalreader.h>
-#include <io/textfilereader.h>
+#include "io/esrigridreader.h"
+#include "io/gdalreader.h"
+#include "io/textfilereader.h"
 
 #include "ProgressReporter.h"
+#include "AbstractChannel.h"
 
 void Context::openFrames(QStringList& fileNames) {
     // Not reachable in CLI
@@ -69,7 +71,7 @@ void Context::openFrames(QStringList& fileNames) {
         std::cout << "Opened river \"" << fileNames[0].toStdString() << "\"" << std::endl << std::endl;
     } else {
         std::cout << QString("Opened river containing %1 frames").arg(fileNames.length()).toStdString()
-            << std::endl << std::endl;
+            << std::endl;
     }
 }
 
@@ -155,11 +157,13 @@ void Context::openBoundary(const QString& fileName) {
     }
 
     m_riverData->setBoundary(boundary);
+
+    std::cout << "Opened boundary \"" << fileName.toStdString() << "\"" << std::endl;
     // map->update();
     // markComputationNeeded(false);
 }
 
-void Context::compute() {
+void Context::computeNetworkGraph() {
 	if (!m_riverData->boundaryRasterized().isValid()) {
 		// QMessageBox msgBox;
 		// msgBox.setIcon(QMessageBox::Critical);
@@ -189,5 +193,80 @@ void Context::compute() {
         auto frame = m_riverData->getFrame(i);
         GraphComputer gc(frame->m_name.toStdString(), m_riverData, frame);
         gc.start();
+    }
+
+    std::cout << std::endl;
+}
+
+void Context::mergeChannels(std::vector<std::shared_ptr<AbstractChannel>> &channels,
+                            const std::vector<std::shared_ptr<AbstractChannel>>::iterator &channel) {
+    auto ch = *channel;
+    channels.erase(channel);
+    for (auto c = channels.begin(); c != channels.end(); c++) {
+        if (c->get()->mergeChannel(ch)) {
+            mergeChannels(channels, c);
+            return;
+        }
+    }
+    channels.push_back(ch);
+}
+
+std::vector<std::shared_ptr<AbstractChannel>> Context::buildAbstractChannelFromEdges(const std::vector<NetworkGraph::Edge> &edges) {
+    std::vector<std::shared_ptr<AbstractChannel>> channels;
+    for (auto const &edge : edges) {
+        if (channels.empty()) {
+            channels.push_back(std::make_shared<AbstractChannel>(edge));
+        } else {
+            bool appended = false;
+            for (auto c = channels.begin(); c != channels.end(); c++) {
+                if (c->get()->appendEdge(edge)) {
+                    appended = true;
+                    mergeChannels(channels, c);
+                    break;
+                }
+            }
+            if (!appended) {
+                channels.push_back(std::make_shared<AbstractChannel>(edge));
+            }
+        }
+    }
+    return channels;
+}
+
+void Context::buildAbstraction(const std::shared_ptr<NetworkGraph> &networkGraph) {
+    std::map<double, std::vector<NetworkGraph::Edge>> deltaMap;
+    for (int i = 0; i < networkGraph->edgeCount(); ++i) {
+        auto delta = networkGraph->edge(i).delta;
+        if (deltaMap.find(delta) == deltaMap.end()) {
+            deltaMap[delta] = {networkGraph->edge(i)};
+        } else {
+            deltaMap[delta].push_back(networkGraph->edge(i));
+        }
+    }
+    std::vector<int> pc(networkGraph->vertexCount());
+    int channelIndex = 0;
+    for (const auto &p: deltaMap) {
+        auto channels = buildAbstractChannelFromEdges(p.second);
+        for (const auto &c: channels) {
+            for (const auto &id: c->getPointIDs()) {
+                pc[id] = channelIndex;
+            }
+            channelIndex++;
+        }
+    }
+//    for (const auto &p: deltaMap) {
+//        auto channels = buildAbstractChannelFromEdges(p.second);
+//        std::cout << "There are " << channels.size() << " channels at delta " << p.first << ", len = [ ";
+//        for (const auto &c: channels) {
+//            std::cout << c->getLength() << " ";
+//        }
+//        std::cout << "]" << std::endl;
+//    }
+}
+
+void Context::displayMainChannelScale() {
+    for (auto i = 0; i < m_riverData->frameCount(); i++) {
+        auto frame = m_riverData->getFrame(i);
+        buildAbstraction(frame->m_networkGraph);
     }
 }

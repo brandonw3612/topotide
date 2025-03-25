@@ -5,7 +5,7 @@
 
 ProgressReporter::ProgressReporter(const std::string& taskGroupName, int maxProgress)
     : m_taskGroupName(taskGroupName), m_taskLines(0), m_maxProgress(maxProgress) {
-    std::cout << "Computing: " << taskGroupName << std::endl;
+    std::cout << "[Computing] " << taskGroupName << std::endl;
 }
 
 void ProgressReporter::createTask(const std::string& taskName) {
@@ -40,13 +40,13 @@ void ProgressReporter::refresh() {
     }
     for (auto i = 0; i < m_tasks.size(); ++i) {
         std::cout << std::setw(40) << std::left << m_tasks[i];
-        if (m_taskProgress[i] >= m_maxProgress) std::cout << std::setw(22) << ": completed" << std::endl;
-        else if (m_taskProgress[i] < 0) std::cout << std::setw(22) << ": awaiting" << std::endl;
+        if (m_taskProgress[i] >= m_maxProgress) std::cout << std::setw(30) << ": [completed]" << std::endl;
+        else if (m_taskProgress[i] < 0) std::cout << std::setw(30) << ": [awaiting]" << std::endl;
         else {
             int p = m_taskProgress[i] * 20 / m_maxProgress;
             if (p < 0) p = 0;
             if (p > 20) p = 20;
-            std::cout << "[" << std::string(p, '=') << std::string(20 - p, ' ') << "]" << std::endl;
+            std::cout << ": [" << std::string(p, '=') << std::string(20 - p, ' ') << "]" << std::endl;
         }
     }
     m_taskLines = m_tasks.size();
@@ -56,7 +56,7 @@ void ProgressReporter::terminateAll() {
     if (m_taskLines > -1) {
         std::cout << "\033[" << m_taskLines + 1 << "A" << std::flush;
     }
-    std::cout << "Completed: " << m_taskGroupName << std::endl;
+    std::cout << "[Completed Computation] " << m_taskGroupName << std::endl;
     for (int i = 0; i < m_taskLines; i++) {
         std::cout << "\033[2K\r" << std::endl << std::flush;
     }
