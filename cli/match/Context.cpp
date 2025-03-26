@@ -201,7 +201,8 @@ void Context::computeNetworkGraph() {
 
 void Context::mergeChannels(std::vector<std::shared_ptr<AbstractChannel>> &channels,
                             const std::vector<std::shared_ptr<AbstractChannel>>::iterator &channel) {
-    const auto& ch = *channel;
+    // TODO: How can we avoid this?
+    auto ch = *channel;
     channels.erase(channel);
     for (auto c = channels.begin(); c != channels.end(); c++) {
         if (c->get()->mergeChannel(ch)) {
