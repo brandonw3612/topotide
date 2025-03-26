@@ -98,3 +98,11 @@ int AbstractChannel::getLength() const {
 const std::vector<int> &AbstractChannel::getPointIDs() const {
     return m_pointIDs;
 }
+
+int AbstractChannel::getStartPointID() const {
+    return m_from;
+}
+
+int AbstractChannel::getEndPointID() const {
+    return m_to;
+}

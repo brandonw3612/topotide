@@ -8,6 +8,7 @@
 #include "AbstractChannel.h"
 #include "ProgressReporter.h"
 #include "RiverData.h"
+#include "AbstractGraph.h"
 
 
 class Context : QObject {
@@ -24,11 +25,11 @@ public:
     void openFrames(QStringList& fileNames);
     void openBoundary(const QString& fileName);
     void computeNetworkGraph();
-    void displayMainChannelScale();
+    void buildAbstractionForAllFrames();
 
 private:
     static std::shared_ptr<RiverFrame> loadFrame(const QString& file_name, Units& units);
-    static void buildAbstraction(const std::shared_ptr<NetworkGraph>& networkGraph);
+    static std::shared_ptr<AbstractGraph> buildAbstraction(const std::shared_ptr<NetworkGraph>& networkGraph);
     static void mergeChannels(std::vector<std::shared_ptr<AbstractChannel>>& channels,
                               const std::vector<std::shared_ptr<AbstractChannel>>::iterator& channel);
     static std::vector<std::shared_ptr<AbstractChannel>> buildAbstractChannelFromEdges(const std::vector<NetworkGraph::Edge>& edges);

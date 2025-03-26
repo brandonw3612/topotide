@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <map>
+#include <unordered_set>
 
 #include "io/esrigridreader.h"
 #include "io/gdalreader.h"
@@ -30,7 +31,7 @@ void Context::openFrames(QStringList& fileNames) {
 
     std::shared_ptr<RiverData> riverData;
     Units units;
-    for (QString fileName : fileNames) {
+    for (const QString& fileName : fileNames) {
         std::shared_ptr<RiverFrame> frame = loadFrame(fileName, units);
         if (!frame) {
             break;
@@ -200,7 +201,7 @@ void Context::computeNetworkGraph() {
 
 void Context::mergeChannels(std::vector<std::shared_ptr<AbstractChannel>> &channels,
                             const std::vector<std::shared_ptr<AbstractChannel>>::iterator &channel) {
-    auto ch = *channel;
+    const auto& ch = *channel;
     channels.erase(channel);
     for (auto c = channels.begin(); c != channels.end(); c++) {
         if (c->get()->mergeChannel(ch)) {
@@ -233,8 +234,8 @@ std::vector<std::shared_ptr<AbstractChannel>> Context::buildAbstractChannelFromE
     return channels;
 }
 
-void Context::buildAbstraction(const std::shared_ptr<NetworkGraph> &networkGraph) {
-    std::map<double, std::vector<NetworkGraph::Edge>> deltaMap;
+std::shared_ptr<AbstractGraph> Context::buildAbstraction(const std::shared_ptr<NetworkGraph> &networkGraph) {
+    std::map<double, std::vector<NetworkGraph::Edge>, std::greater<>> deltaMap;
     for (int i = 0; i < networkGraph->edgeCount(); ++i) {
         auto delta = networkGraph->edge(i).delta;
         if (deltaMap.find(delta) == deltaMap.end()) {
@@ -243,30 +244,47 @@ void Context::buildAbstraction(const std::shared_ptr<NetworkGraph> &networkGraph
             deltaMap[delta].push_back(networkGraph->edge(i));
         }
     }
-    std::vector<int> pc(networkGraph->vertexCount());
+    std::vector<std::shared_ptr<AbstractGraph::AGNode>> nodes;
+    std::vector<int> pc(networkGraph->vertexCount(), -1);
     int channelIndex = 0;
     for (const auto &p: deltaMap) {
+        // if (p.first <= 0) break;
         auto channels = buildAbstractChannelFromEdges(p.second);
         for (const auto &c: channels) {
+            auto node = std::make_shared<AbstractGraph::AGNode>(c);
+            nodes.push_back(node);
+            if (pc[c->getStartPointID()] >= 0) node->setSplittingParent(nodes[pc[c->getStartPointID()]]);
+            if (pc[c->getEndPointID()] >= 0) node->setMergingParent(nodes[pc[c->getEndPointID()]]);
+            auto decisiveParentId = std::max(pc[c->getStartPointID()], pc[c->getEndPointID()]);
+            if (decisiveParentId >= 0) nodes[decisiveParentId]->addChild(p.first, node);
             for (const auto &id: c->getPointIDs()) {
+                if (pc[id] >= 0) continue;
                 pc[id] = channelIndex;
             }
             channelIndex++;
         }
     }
-//    for (const auto &p: deltaMap) {
-//        auto channels = buildAbstractChannelFromEdges(p.second);
-//        std::cout << "There are " << channels.size() << " channels at delta " << p.first << ", len = [ ";
-//        for (const auto &c: channels) {
-//            std::cout << c->getLength() << " ";
-//        }
-//        std::cout << "]" << std::endl;
-//    }
+    std::unordered_set<std::shared_ptr<AbstractGraph::AGNode>> visited;
+    std::queue<std::shared_ptr<AbstractGraph::AGNode>> q;
+    double min_delta = deltaMap.begin()->first;
+    q.push(nodes[0]);
+    while (!q.empty()) {
+        auto node = q.front();
+        q.pop();
+        visited.insert(node);
+        for (const auto &c: node->getChildren()) {
+            min_delta = std::min(min_delta, c.first);
+            q.push(c.second);
+        }
+    }
+    std::cout << "Out of " << nodes.size() << " nodes, " << visited.size() << " are reachable from the root, "
+              << "and the lowest delta is " << min_delta << "." << std::endl;
+    return std::make_shared<AbstractGraph>(nodes[0]);
 }
 
-void Context::displayMainChannelScale() {
+void Context::buildAbstractionForAllFrames() {
     for (auto i = 0; i < m_riverData->frameCount(); i++) {
         auto frame = m_riverData->getFrame(i);
-        buildAbstraction(frame->m_networkGraph);
+        auto abs = buildAbstraction(frame->m_networkGraph);
     }
 }

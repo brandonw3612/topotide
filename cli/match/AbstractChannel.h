@@ -30,8 +30,10 @@ public:
      */
     bool mergeChannel(const std::shared_ptr<AbstractChannel>& other);
 
-    int getLength() const;
-    const std::vector<int>& getPointIDs() const;
+    [[nodiscard]] int getLength() const;
+    [[nodiscard]] const std::vector<int>& getPointIDs() const;
+    [[nodiscard]] int getStartPointID() const;
+    [[nodiscard]] int getEndPointID() const;
 };
 
 
