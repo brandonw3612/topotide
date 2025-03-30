@@ -5,6 +5,7 @@
 #include <iostream>
 #include <map>
 #include <unordered_set>
+#include <QFileInfo>
 
 #include "io/esrigridreader.h"
 #include "io/gdalreader.h"
@@ -256,8 +257,6 @@ std::shared_ptr<AbstractGraph> Context::buildAbstraction(const std::shared_ptr<N
             nodes.push_back(node);
             if (pc[c->getStartPointID()] >= 0) node->setSplittingParent(nodes[pc[c->getStartPointID()]]);
             if (pc[c->getEndPointID()] >= 0) node->setMergingParent(nodes[pc[c->getEndPointID()]]);
-            auto decisiveParentId = std::max(pc[c->getStartPointID()], pc[c->getEndPointID()]);
-            if (decisiveParentId >= 0) nodes[decisiveParentId]->addChild(p.first, node);
             for (const auto &id: c->getPointIDs()) {
                 if (pc[id] >= 0) continue;
                 pc[id] = channelIndex;
@@ -265,27 +264,14 @@ std::shared_ptr<AbstractGraph> Context::buildAbstraction(const std::shared_ptr<N
             channelIndex++;
         }
     }
-    std::unordered_set<std::shared_ptr<AbstractGraph::AGNode>> visited;
-    std::queue<std::shared_ptr<AbstractGraph::AGNode>> q;
-    double min_delta = deltaMap.begin()->first;
-    q.push(nodes[0]);
-    while (!q.empty()) {
-        auto node = q.front();
-        q.pop();
-        visited.insert(node);
-        for (const auto &c: node->getChildren()) {
-            min_delta = std::min(min_delta, c.first);
-            q.push(c.second);
-        }
-    }
-    std::cout << "Out of " << nodes.size() << " nodes, " << visited.size() << " are reachable from the root, "
-              << "and the lowest delta is " << min_delta << "." << std::endl;
-    return std::make_shared<AbstractGraph>(nodes[0]);
+    return std::make_shared<AbstractGraph>(nodes);
 }
 
 void Context::buildAbstractionForAllFrames() {
     for (auto i = 0; i < m_riverData->frameCount(); i++) {
         auto frame = m_riverData->getFrame(i);
         auto abs = buildAbstraction(frame->m_networkGraph);
+        QFileInfo fileInfo(frame->m_name);
+        m_frames.push_back(std::make_shared<AbstractFrame>(fileInfo.baseName(), abs));
     }
 }

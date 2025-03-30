@@ -4,6 +4,7 @@
 2. Read the boundary.
 3. Compute the `NetworkGraph` for all frames.
 4. Create an `AbstractGraph` for each frame.
+5. Create a GUI to display 2 frames using the same "filter".
 
 ### How do we create an `AbstractGraph` from a `NetworkGraph`?
 
@@ -20,7 +21,7 @@ The channels are wrapped as nodes (`AGNode`) in the abstract graph.
 1. In `main.cpp`, set `dataFolderPath` to the path of the data files.
 2. Go to the root directory of the project (`.../topotide`).
 3. Create a build directory and build the project with CMake.
-4. Go to the build directory for `cli/match`.
+4. Go to the build directory for `match`.
 5. Build the executable with `make`.
 
 Suppose we are in the root directory of the project (`.../topotide`):
@@ -29,7 +30,7 @@ Suppose we are in the root directory of the project (`.../topotide`):
 mkdir build
 cd build
 cmake ..
-cd cli/match
+cd match
 make
-./topotide-cli
+./topotide-match
 ```

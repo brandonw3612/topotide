@@ -9,6 +9,7 @@
 #include "ProgressReporter.h"
 #include "RiverData.h"
 #include "AbstractGraph.h"
+#include "AbstractFrame.h"
 
 
 class Context : QObject {
@@ -17,9 +18,13 @@ class Context : QObject {
 
 private:
     std::shared_ptr<RiverData> m_riverData;
+    std::vector<std::shared_ptr<AbstractFrame>> m_frames;
 
 private:
     std::shared_ptr<ProgressReporter> m_pr;
+
+public:
+    const std::vector<std::shared_ptr<AbstractFrame>>& getFrames() const { return m_frames; }
 
 public:
     void openFrames(QStringList& fileNames);
