@@ -1,13 +1,36 @@
 #include <QVBoxLayout>
 #include <QLabel>
+#include <QSpinBox>
 #include "DualFrameViewer.h"
 
 DualFrameViewer::DualFrameViewer() {
-    m_graphicViewScale = 1.0;
-
     setWindowTitle("Dual Frame Viewer");
 
     auto rootLayout = new QVBoxLayout;
+
+    auto topCommandLayout = new QHBoxLayout;
+    auto depthLabel = new QLabel("Max node depth");
+    depthLabel->setStyleSheet("QLabel { font-size: 14px; }");
+    m_depthSpinBox = new QSpinBox;
+    m_depthSpinBox->setValue(2);
+    m_depthSpinBox->setRange(0, 10);
+    m_depthSpinBox->setSingleStep(1);
+    m_depthSpinBox->setMinimumWidth(100);
+    m_depthSpinBox->setMaximumWidth(200);
+    connect(m_depthSpinBox, &QSpinBox::valueChanged, this, &DualFrameViewer::onFilterChanged);
+    auto deltaLabel = new QLabel("Min delta");
+    deltaLabel->setStyleSheet("QLabel { font-size: 14px; }");
+    m_deltaLineEdit = new QLineEdit;
+    m_deltaLineEdit->setText("100");
+    m_deltaLineEdit->setMinimumWidth(100);
+    m_deltaLineEdit->setMaximumWidth(200);
+    connect(m_deltaLineEdit, &QLineEdit::textChanged, this, &DualFrameViewer::onFilterChanged);
+    topCommandLayout->addStretch();
+    topCommandLayout->addWidget(depthLabel);
+    topCommandLayout->addWidget(m_depthSpinBox);
+    topCommandLayout->addSpacing(20);
+    topCommandLayout->addWidget(deltaLabel);
+    topCommandLayout->addWidget(m_deltaLineEdit);
 
     auto topViewLayout = createSingleView(1, "Frame #1", m_topViewComboBox, m_topGraphicsView);
     auto bottomViewLayout = createSingleView(2, "Frame #2", m_bottomViewComboBox, m_bottomGraphicsView);
@@ -15,6 +38,7 @@ DualFrameViewer::DualFrameViewer() {
     m_topGraphicsView->setSynchronizedView(m_bottomGraphicsView);
     m_bottomGraphicsView->setSynchronizedView(m_topGraphicsView);
 
+    rootLayout->addLayout(topCommandLayout);
     rootLayout->addLayout(topViewLayout);
     rootLayout->addLayout(bottomViewLayout);
 
@@ -22,7 +46,7 @@ DualFrameViewer::DualFrameViewer() {
     resize(1000, 800);
 }
 
-QVBoxLayout* DualFrameViewer::createSingleView(int id, QString title, QComboBox* &comboBox, SGraphicsView* &graphicsView) {
+QVBoxLayout* DualFrameViewer::createSingleView(int id, const QString& title, QComboBox* &comboBox, SGraphicsView* &graphicsView) {
     auto layout = new QVBoxLayout;
 
     auto label = new QLabel(title);
@@ -47,7 +71,7 @@ void DualFrameViewer::onComboBoxChanged() {
     auto frame = comboBox->currentData().value<std::shared_ptr<AbstractFrame>>();
     auto view = comboBox->property("ID").toInt() == 1 ? m_topGraphicsView : m_bottomGraphicsView;
     if (frame == nullptr) view->setScene(nullptr);
-    else view->setScene(frame->getScene(2, 100));
+    else view->setScene(frame->getScene(m_depthSpinBox->value(), m_deltaLineEdit->text().toFloat()));
 }
 
 void DualFrameViewer::setFrames(const std::vector<std::shared_ptr<AbstractFrame>> &frames) {
@@ -58,5 +82,16 @@ void DualFrameViewer::setFrames(const std::vector<std::shared_ptr<AbstractFrame>
     for (const auto &frame: frames) {
         m_topViewComboBox->addItem(frame->getName(), QVariant::fromValue(frame));
         m_bottomViewComboBox->addItem(frame->getName(), QVariant::fromValue(frame));
+    }
+}
+
+void DualFrameViewer::onFilterChanged() {
+    auto topFrame = m_topViewComboBox->currentData().value<std::shared_ptr<AbstractFrame>>();
+    if (topFrame != nullptr) {
+        m_topGraphicsView->setScene(topFrame->getScene(m_depthSpinBox->value(), m_deltaLineEdit->text().toFloat()));
+    }
+    auto bottomFrame = m_bottomViewComboBox->currentData().value<std::shared_ptr<AbstractFrame>>();
+    if (bottomFrame != nullptr) {
+        m_bottomGraphicsView->setScene(bottomFrame->getScene(m_depthSpinBox->value(), m_deltaLineEdit->text().toFloat()));
     }
 }

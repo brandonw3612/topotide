@@ -2,8 +2,10 @@
 #define TOPOTIDE_DUALFRAMEVIEWER_H
 
 #include <QWindow>
+#include <QLineEdit>
 #include <QComboBox>
 #include <QVBoxLayout>
+#include <QSpinBox>
 #include <QGraphicsView>
 #include "AbstractFrame.h"
 #include "SGraphicsView.h"
@@ -15,11 +17,10 @@ class DualFrameViewer : public QWidget {
     Q_OBJECT
 
 private:
-    double m_graphicViewScale;
-
-private:
     QComboBox *m_topViewComboBox, *m_bottomViewComboBox;
     SGraphicsView *m_topGraphicsView, *m_bottomGraphicsView;
+    QSpinBox *m_depthSpinBox;
+    QLineEdit *m_deltaLineEdit;
 
 public:
     DualFrameViewer();
@@ -29,10 +30,10 @@ public:
 
 private:
     void onComboBoxChanged();
-    void onGraphicViewWheelChanged();
+    void onFilterChanged();
 
 private:
-    QVBoxLayout* createSingleView(int id, QString title, QComboBox* &comboBox, SGraphicsView* &graphicsView);
+    QVBoxLayout* createSingleView(int id, const QString& title, QComboBox* &comboBox, SGraphicsView* &graphicsView);
 };
 
 
