@@ -47,7 +47,7 @@ void DualFrameViewer::onComboBoxChanged() {
     auto frame = comboBox->currentData().value<std::shared_ptr<AbstractFrame>>();
     auto view = comboBox->property("ID").toInt() == 1 ? m_topGraphicsView : m_bottomGraphicsView;
     if (frame == nullptr) view->setScene(nullptr);
-    else view->setScene(frame->getScene(2, 500));
+    else view->setScene(frame->getScene(2, 100));
 }
 
 void DualFrameViewer::setFrames(const std::vector<std::shared_ptr<AbstractFrame>> &frames) {
