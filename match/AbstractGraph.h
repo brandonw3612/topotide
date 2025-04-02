@@ -15,7 +15,8 @@ public:
     private:
         std::shared_ptr<AbstractChannel> m_channel;
         std::shared_ptr<AGNode> m_splittingParent, m_mergingParent;
-
+	    void setmatchedChannel(const std::shared_ptr<AbstractChannel>& channel){m_matchedChannel = channel;};
+		std::shared_ptr<AbstractChannel> m_matchedChannel;
     public:
         /// Constructs a node with an AbstractChannel.
         /// @param channel The channel that current node represents in the graph.
@@ -35,6 +36,9 @@ public:
 
         /// Sets the parent channel node into which the current node merges.
         void setMergingParent(const std::shared_ptr<AGNode>& parent) { m_mergingParent = parent; }
+
+        // Gets the main Channel of the graph
+    	std::shared_ptr<AbstractChannel> getmainChannel() const;
     };
 
 private:

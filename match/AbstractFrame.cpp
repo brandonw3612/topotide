@@ -43,7 +43,9 @@ QGraphicsScene *AbstractFrame::getScene(int maxDepth, double minDelta) const {
         depthMap[node] = depth;
         if (depth > maxDepth || node->getChannel()->getDelta() < minDelta) continue;
         auto path = createPath(node->getChannel()->getPoints());
-        if (path.elementCount() > 1) {
+        if (node->getChannel() == m_matchedChannel) {
+            scene->addPath(path, matchedBrush, QBrush(Qt::transparent));
+        } else if (path.elementCount() > 1) {
             scene->addPath(path, brushes[depth % brushes.size()], QBrush(Qt::transparent));
         }
     }

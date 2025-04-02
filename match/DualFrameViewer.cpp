@@ -2,6 +2,7 @@
 #include <QLabel>
 #include <QSpinBox>
 #include "DualFrameViewer.h"
+#include "ChannelMatching.h"
 
 DualFrameViewer::DualFrameViewer() {
     setWindowTitle("Dual Frame Viewer");
@@ -71,7 +72,20 @@ void DualFrameViewer::onComboBoxChanged() {
     auto frame = comboBox->currentData().value<std::shared_ptr<AbstractFrame>>();
     auto view = comboBox->property("ID").toInt() == 1 ? m_topGraphicsView : m_bottomGraphicsView;
     if (frame == nullptr) view->setScene(nullptr);
-    else view->setScene(frame->getScene(m_depthSpinBox->value(), m_deltaLineEdit->text().toFloat()));
+    // TODO: Add logic here to retrieve other frame and the main channel in that frame and match it into here
+    else {
+        // TODO: FOR TESTING AND UNDERSTANDING CHANNELS
+    	for (const auto &node: frame->getGraph()->getNodes()) {
+        	if (node->getSplittingParent() == nullptr && node->getMergingParent() == nullptr) {
+				frame->setMainChannel(node->getChannel());
+//                if (ChannelMatching::DTWDistance(frame->getMainChannel(), node->getChannel()) == 0) {
+//                    frame->setMatchedChannel(node->getChannel());
+//                }
+                break;
+            }
+    	}
+        view->setScene(frame->getScene(2, 100));
+    }
 }
 
 void DualFrameViewer::setFrames(const std::vector<std::shared_ptr<AbstractFrame>> &frames) {

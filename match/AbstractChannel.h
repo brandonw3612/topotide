@@ -4,6 +4,7 @@
 #include <vector>
 #include "point.h"
 #include "networkgraph.h"
+#include <memory>
 
 /// Abstract channel in an abstract graph.
 class AbstractChannel {

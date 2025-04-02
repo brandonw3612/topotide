@@ -21,6 +21,12 @@ public:
 
 private:
     static QPainterPath createPath(const std::vector<Point>& points);
+    std::shared_ptr<AbstractChannel> m_matchedChannel;
+    std::shared_ptr<AbstractChannel> m_mainChannel;
+public:
+    void setMatchedChannel(const std::shared_ptr<AbstractChannel>& channel){m_matchedChannel = channel;};
+    void setMainChannel(const std::shared_ptr<AbstractChannel>& channel){m_mainChannel = channel;};
+    std::shared_ptr<AbstractChannel> getMainChannel(){return m_mainChannel;};
 
 private:
     const std::vector<QPen> brushes = {
@@ -37,6 +43,7 @@ private:
         QPen(QBrush(QColor::fromHsv(300, 255, 255)), 1),
         QPen(QBrush(QColor::fromHsv(150, 255, 255)), 1)
     };
+    const QPen matchedBrush = QPen(QBrush(QColor::fromHsv(0, 0, 255)), 1);
 };
 
 #endif //TOPOTIDE_ABSTRACTFRAME_H
