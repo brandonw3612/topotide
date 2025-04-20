@@ -68,17 +68,17 @@ QVBoxLayout* DualFrameViewer::createSingleView(int id, const QString& title, QCo
 
 void DualFrameViewer::onComboBoxChanged() {
     auto comboBox = qobject_cast<QComboBox*>(sender());
-    auto frame = comboBox->currentData().value<std::shared_ptr<AbstractFrame>>();
+    auto frame = comboBox->currentData().value<std::shared_ptr<Frame>>();
     auto view = comboBox->property("ID").toInt() == 1 ? m_topGraphicsView : m_bottomGraphicsView;
     if (frame == nullptr) view->setScene(nullptr);
     else view->setScene(frame->getScene(m_depthSpinBox->value(), m_deltaLineEdit->text().toFloat()));
 }
 
-void DualFrameViewer::setFrames(const std::vector<std::shared_ptr<AbstractFrame>> &frames) {
+void DualFrameViewer::setFrames(const std::vector<std::shared_ptr<Frame>> &frames) {
     m_topViewComboBox->clear();
     m_bottomViewComboBox->clear();
-    m_topViewComboBox->addItem("Select", QVariant::fromValue<std::shared_ptr<AbstractFrame>>(nullptr));
-    m_bottomViewComboBox->addItem("Select", QVariant::fromValue<std::shared_ptr<AbstractFrame>>(nullptr));
+    m_topViewComboBox->addItem("Select", QVariant::fromValue<std::shared_ptr<Frame>>(nullptr));
+    m_bottomViewComboBox->addItem("Select", QVariant::fromValue<std::shared_ptr<Frame>>(nullptr));
     for (const auto &frame: frames) {
         m_topViewComboBox->addItem(frame->getName(), QVariant::fromValue(frame));
         m_bottomViewComboBox->addItem(frame->getName(), QVariant::fromValue(frame));
@@ -86,11 +86,11 @@ void DualFrameViewer::setFrames(const std::vector<std::shared_ptr<AbstractFrame>
 }
 
 void DualFrameViewer::onFilterChanged() {
-    auto topFrame = m_topViewComboBox->currentData().value<std::shared_ptr<AbstractFrame>>();
+    auto topFrame = m_topViewComboBox->currentData().value<std::shared_ptr<Frame>>();
     if (topFrame != nullptr) {
         m_topGraphicsView->setScene(topFrame->getScene(m_depthSpinBox->value(), m_deltaLineEdit->text().toFloat()));
     }
-    auto bottomFrame = m_bottomViewComboBox->currentData().value<std::shared_ptr<AbstractFrame>>();
+    auto bottomFrame = m_bottomViewComboBox->currentData().value<std::shared_ptr<Frame>>();
     if (bottomFrame != nullptr) {
         m_bottomGraphicsView->setScene(bottomFrame->getScene(m_depthSpinBox->value(), m_deltaLineEdit->text().toFloat()));
     }

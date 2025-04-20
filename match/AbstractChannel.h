@@ -1,6 +1,7 @@
 #ifndef TOPOTIDE_ABSTRACTCHANNEL_H
 #define TOPOTIDE_ABSTRACTCHANNEL_H
 
+#include <memory>
 #include <vector>
 #include "point.h"
 #include "networkgraph.h"

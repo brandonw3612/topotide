@@ -24,8 +24,7 @@ void GraphComputer::computeInputGraph() {
 	m_pr.createTask("Computing input graph");
 	auto inputGraph = std::make_shared<InputGraph>(
 	                           m_frame->m_heightMap,
-	                           m_data->boundaryRasterized(),
-	                           m_data->units());
+	                           m_data->boundaryRasterized());
 	m_pr.updateTaskProgress("Computing input graph", 100);
 	{
 		QWriteLocker lock(&(m_frame->m_inputGraphLock));

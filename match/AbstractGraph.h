@@ -51,6 +51,10 @@ public:
 public:
     /// Gets the bound of the entire graph;
     std::pair<Point, Point> getBounds() const;
+
+public:
+    /// Gets a parentless channel with a minimum delta. This can be useful to get the main channel
+    std::shared_ptr<AbstractChannel> getParentlessChannel(double minDelta) const;
 };
 
 

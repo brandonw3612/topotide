@@ -11,3 +11,12 @@ std::pair<Point, Point> AbstractGraph::getBounds() const {
     }
     return bounds;
 }
+
+std::shared_ptr<AbstractChannel> AbstractGraph::getParentlessChannel(double minDelta) const {
+    for (auto &n : m_nodes) {
+        if (n->getMergingParent() != nullptr || n->getSplittingParent() != nullptr) continue;
+        if (n->getChannel()->getDelta() < minDelta) continue;
+        return n->getChannel();
+    }
+    return nullptr;
+}

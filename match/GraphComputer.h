@@ -1,8 +1,9 @@
 #ifndef GRAPHCOMPUTER_H
 #define GRAPHCOMPUTER_H
 
-#include "ProgressReporter.h"
+#include <memory>
 
+#include "ProgressReporter.h"
 #include "RiverData.h"
 
 class GraphComputer {

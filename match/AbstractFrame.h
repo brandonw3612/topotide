@@ -4,8 +4,11 @@
 #include <QString>
 #include <QGraphicsScene>
 #include "AbstractGraph.h"
+#include "Frame.h"
 
-class AbstractFrame {
+// TODO: It is a bit weird that AbstractFrame inherits from Frame, which is an abstract class.
+// This could be combined with renaming AbstractChannel and AbstractGraph since these are also not abstract classes.
+class AbstractFrame : public Frame {
 private:
     QString m_name;
     std::shared_ptr<AbstractGraph> m_graph;
@@ -13,14 +16,11 @@ private:
 public:
     explicit AbstractFrame(const QString& name, const std::shared_ptr<AbstractGraph>& graph);
 
-    [[nodiscard]] const QString& getName() const { return m_name; }
+    [[nodiscard]] const QString& getName() const override { return m_name; }
     [[nodiscard]] const std::shared_ptr<AbstractGraph>& getGraph() const { return m_graph; }
 
 public:
-    [[nodiscard]] QGraphicsScene* getScene(int maxDepth, double minDelta) const;
-
-private:
-    static QPainterPath createPath(const std::vector<Point>& points);
+    [[nodiscard]] QGraphicsScene* getScene(int maxDepth, double minDelta) const override;
 
 private:
     const std::vector<QPen> brushes = {

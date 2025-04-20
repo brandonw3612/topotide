@@ -10,7 +10,8 @@
 #include "AbstractFrame.h"
 #include "SGraphicsView.h"
 
-Q_DECLARE_METATYPE(std::shared_ptr<AbstractFrame>)
+// Q_DECLARE_METATYPE(std::shared_ptr<AbstractFrame>)
+Q_DECLARE_METATYPE(std::shared_ptr<Frame>)
 
 class DualFrameViewer : public QWidget {
 
@@ -26,7 +27,7 @@ public:
     DualFrameViewer();
 
 public:
-    void setFrames(const std::vector<std::shared_ptr<AbstractFrame>> &frames);
+    void setFrames(const std::vector<std::shared_ptr<Frame>> &frames);
 
 private:
     void onComboBoxChanged();
