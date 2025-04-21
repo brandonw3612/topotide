@@ -2,6 +2,7 @@
 #include "DualFrameViewer.h"
 #include "Frame.h"
 #include "PathFrame.h"
+#include "SubdividedAbstractGraph.h"
 #include <QApplication>
 #include <QGraphicsView>
 
@@ -24,6 +25,9 @@ int main(int argc, char* argv[]) {
     auto parentChannel = frameContainingPath->getGraph()->getParentlessChannel(100.0);
     auto path = parentChannel->getPoints();
     auto pathFrame = std::make_shared<PathFrame>("Main path 1964", path, frameContainingPath->getGraph()->getBounds());
+
+    auto subdividedGraph = SubdividedAbstractGraph(frameContainingPath->getGraph(), 10, 10000.0);
+    std::cout << subdividedGraph.edgeDepth.size() << std::endl;
 
     std::vector<std::shared_ptr<Frame>> all_frames;
     for (auto& f : fs) {

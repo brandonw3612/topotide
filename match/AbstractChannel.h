@@ -39,6 +39,12 @@ public:
     /// Gets the ID of the ending point of the channel.
     [[nodiscard]] int getEndPointID() const { return m_to; }
 
+    /// Gets the starting point of the channel.
+    [[nodiscard]] Point getStartPoint() const { return m_points[0]; }
+
+    /// Gets the ending point of the channel.
+    [[nodiscard]] Point getEndPoint() const { return m_points.back(); }
+
     /// Gets the rectangular bound of the channel.
     /// @return \b result.first -- the lower bound; \n
     /// \b result.second -- the upper bound.

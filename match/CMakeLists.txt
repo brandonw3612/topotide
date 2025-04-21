@@ -11,6 +11,7 @@ add_executable(topotide-match
         SGraphicsView.cpp
         PathFrame.cpp
         Frame.cpp
+        SubdividedAbstractGraph.cpp
 )
 target_link_libraries(topotide-match PRIVATE topotidelib)
 target_link_libraries(topotide-match PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets)
