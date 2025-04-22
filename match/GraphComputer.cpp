@@ -3,6 +3,7 @@
 #include "mscomplexcreator.h"
 #include "mscomplexsimplifier.h"
 #include "mstonetworkgraphcreator.h"
+#include "mergetree.h"
 
 GraphComputer::GraphComputer(
     std::string frameName,
@@ -22,9 +23,9 @@ void GraphComputer::start() {
 
 void GraphComputer::computeInputGraph() {
 	m_pr.createTask("Computing input graph");
-	auto inputGraph = std::make_shared<InputGraph>(
-	                           m_frame->m_heightMap,
-	                           m_data->boundaryRasterized());
+    auto inputGraph = std::make_shared<InputGraph>(
+            m_frame->m_heightMap,
+            m_data->boundaryRasterized());
 	m_pr.updateTaskProgress("Computing input graph", 100);
 	{
 		QWriteLocker lock(&(m_frame->m_inputGraphLock));
@@ -36,6 +37,7 @@ void GraphComputer::computeInputGraph() {
 void GraphComputer::computeInputDcel() {
 	m_pr.createTask("Computing input DCEL");
 	auto inputDcel = std::make_shared<InputDcel>(*m_frame->m_inputGraph);
+    inputDcel->computeGradientFlow();
 	m_pr.updateTaskProgress("Computing input DCEL", 100);
 	{
 		QWriteLocker lock(&(m_frame->m_inputDcelLock));
@@ -57,6 +59,17 @@ void GraphComputer::computeMsComplex() {
 		m_frame->m_msComplex = msComplex;
 	}
 	m_pr.finishTask("Computing MS complex");
+}
+
+void GraphComputer::computeMergeTree() {
+    m_pr.createTask("Computing merge tree");
+    auto mergeTree = std::make_shared<MergeTree>(m_frame->m_msComplex);
+    m_pr.updateTaskProgress("Computing merge tree", 100);
+    {
+        QWriteLocker lock(&(m_frame->m_mergeTreeLock));
+        m_frame->m_mergeTree = mergeTree;
+    }
+    m_pr.finishTask("Computing merge tree");
 }
 
 void GraphComputer::simplifyMsComplex() {

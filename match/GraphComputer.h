@@ -24,6 +24,7 @@ private:
     void computeInputGraph();
     void computeInputDcel();
     void computeMsComplex();
+    void computeMergeTree();
     void simplifyMsComplex();
     void msComplexToNetworkGraph();
 };
