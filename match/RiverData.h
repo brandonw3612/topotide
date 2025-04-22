@@ -7,12 +7,13 @@
 
 #include <memory>
 
-#include "../../lib/heightmap.h"
-#include "../../lib/inputdcel.h"
-#include "../../lib/inputgraph.h"
-#include "../../lib/mscomplex.h"
-#include "../../lib/networkgraph.h"
-#include "../../lib/units.h"
+#include "heightmap.h"
+#include "inputdcel.h"
+#include "inputgraph.h"
+#include "mergetree.h"
+#include "mscomplex.h"
+#include "networkgraph.h"
+#include "units.h"
 
 /**
  * Collection of all data belonging to a single frame of the river.
@@ -36,68 +37,89 @@
  */
 class RiverFrame : public QObject {
 
-	Q_OBJECT
+Q_OBJECT
 
-	public:
+public:
 
-		/// Constructs a new river frame object with the given name and
-		/// heightmap.
-		RiverFrame(QString name, const HeightMap& heightMap);
+    /// Constructs a new river frame object with the given name and
+    /// heightmap.
+    RiverFrame(QString name, const HeightMap& heightMap);
 
-		/// The name of this river data set. This is the name of the file
-		/// containing height data that has been opened.
-		QString m_name;
-		/// The river heightmap.
-		HeightMap m_heightMap;
+    /// The name of this river data set. This is the name of the file
+    /// containing height data that has been opened.
+    QString m_name;
+    /// The river heightmap.
+    HeightMap m_heightMap;
 
-		/**
-		 * The input graph.
+    /**
+     * The input graph.
+     *
+     * \note Acquire inputGraphLock before reading / writing to this field.
+     */
+    std::shared_ptr<InputGraph> m_inputGraph = nullptr;
+
+    /**
+     * Read-write lock for inputGraph.
+     */
+    QReadWriteLock m_inputGraphLock;
+
+    /**
+     * The input DCEL.
+     *
+     * \note Acquire inputDcelLock before reading / writing to this field.
+     */
+    std::shared_ptr<InputDcel> m_inputDcel = nullptr;
+
+    /**
+     * Read-write lock for inputDcel.
+     */
+    QReadWriteLock m_inputDcelLock;
+
+    std::shared_ptr<MergeTree> m_mergeTree = nullptr;
+    QReadWriteLock m_mergeTreeLock;
+
+    /**
+     * The Morse-Smale complex.
+     *
+     * \note Acquire msComplexLock before reading / writing to this field.
+     */
+    std::shared_ptr<MsComplex> m_msComplex = nullptr;
+
+    /**
+     * Read-write lock for msComplex.
+     */
+    QReadWriteLock m_msComplexLock;
+
+    /**
+     * The graph of the network.
+     *
+     * \note Acquire networkGraphLock before reading / writing to this
+     * field.
+     */
+    std::shared_ptr<NetworkGraph> m_networkGraph = nullptr;
+
+    /**
+     * Read-write lock for networkGraph.
+     */
+    QReadWriteLock m_networkGraphLock;
+
+#ifdef EXPERIMENTAL_FINGERS_SUPPORT
+    /**
+		 * The simplified input DCEL (with gradient pairs swapped).
 		 *
-		 * \note Acquire inputGraphLock before reading / writing to this field.
+		 * \note Acquire m_simplifiedInputDcelLock before reading / writing to
+		 * this field.
 		 */
-		std::shared_ptr<InputGraph> m_inputGraph = nullptr;
+		std::shared_ptr<InputDcel> m_simplifiedInputDcel = nullptr;
 
 		/**
-		 * Read-write lock for inputGraph.
+		 * Read-write lock for m_simplifiedInputDcel.
 		 */
-		QReadWriteLock m_inputGraphLock;
+		QReadWriteLock m_simplifiedInputDcelLock;
 
-		/**
-		 * The input DCEL.
-		 *
-		 * \note Acquire inputDcelLock before reading / writing to this field.
-		 */
-		std::shared_ptr<InputDcel> m_inputDcel = nullptr;
-
-		/**
-		 * Read-write lock for inputDcel.
-		 */
-		QReadWriteLock m_inputDcelLock;
-
-		/**
-		 * The Morse-Smale complex.
-		 *
-		 * \note Acquire msComplexLock before reading / writing to this field.
-		 */
-		std::shared_ptr<MsComplex> m_msComplex = nullptr;
-
-		/**
-		 * Read-write lock for msComplex.
-		 */
-		QReadWriteLock m_msComplexLock;
-
-		/**
-		 * The graph of the network.
-		 *
-		 * \note Acquire networkGraphLock before reading / writing to this
-		 * field.
-		 */
-		std::shared_ptr<NetworkGraph> m_networkGraph = nullptr;
-
-		/**
-		 * Read-write lock for networkGraph.
-		 */
-		QReadWriteLock m_networkGraphLock;
+		std::shared_ptr<std::vector<InputDcel::Path>> m_fingers = nullptr;
+		QReadWriteLock m_fingersLock;
+#endif
 };
 
 /**
@@ -106,61 +128,61 @@ class RiverFrame : public QObject {
  */
 class RiverData : public QObject {
 
-	Q_OBJECT
+Q_OBJECT
 
-	public:
-		/// Creates a new time series with the given dimensions, no frames,
-		/// and a default boundary.
-		RiverData(int width, int height, Units units);
+public:
+    /// Creates a new time series with the given dimensions, no frames,
+    /// and a default boundary.
+    RiverData(int width, int height, Units units);
 
-		/// Returns the width of the frames in this time series.
-		int width() const;
-		/// Returns the width of the frames in this time series.
-		int height() const;
+    /// Returns the width of the frames in this time series.
+    int width() const;
+    /// Returns the width of the frames in this time series.
+    int height() const;
 
-		/// Inserts a new frame at the end of this time series.
-		void addFrame(const std::shared_ptr<RiverFrame>& frame);
-		/// Returns the `i`th frame.
-		std::shared_ptr<RiverFrame> getFrame(int i);
-		/// Returns the number of frames in this time series.
-		int frameCount() const;
+    /// Inserts a new frame at the end of this time series.
+    void addFrame(const std::shared_ptr<RiverFrame>& frame);
+    /// Returns the `i`th frame.
+    std::shared_ptr<RiverFrame> getFrame(int i);
+    /// Returns the number of frames in this time series.
+    int frameCount() const;
 
-	    Boundary& boundary();
-	    Boundary& boundaryRasterized();
-	    /// Sets the boundary of the river. This updates both `boundary` and
-		/// `boundaryRasterized`.
-		void setBoundary(const Boundary& b);
+    Boundary& boundary();
+    Boundary& boundaryRasterized();
+    /// Sets the boundary of the river. This updates both `boundary` and
+    /// `boundaryRasterized`.
+    void setBoundary(const Boundary& b);
 
-		/// Returns the units.
-		Units& units();
+    /// Returns the units.
+    Units& units();
 
-		/// Returns the lowest (non-nodata) elevation in this time series.
-		double minimumElevation() const;
-		/// Returns the highest (non-nodata) elevation in this time series.
-		double maximumElevation() const;
+    /// Returns the lowest (non-nodata) elevation in this time series.
+    double minimumElevation() const;
+    /// Returns the highest (non-nodata) elevation in this time series.
+    double maximumElevation() const;
 
-	private:
-		/// The width in pixels of frames in this time series.
-		int m_width;
-		/// The height in pixels of frames in this time series.
-		int m_height;
+private:
+    /// The width in pixels of frames in this time series.
+    int m_width;
+    /// The height in pixels of frames in this time series.
+    int m_height;
 
-		/// The list of frames.
-		std::vector<std::shared_ptr<RiverFrame>> m_frames;
+    /// The list of frames.
+    std::vector<std::shared_ptr<RiverFrame>> m_frames;
 
-		/// The boundary of the river area.
-		Boundary m_boundary;
-		/// The boundary of the river area in rasterized form (see
-		/// `Boundary::rasterize()`).
-		Boundary m_boundaryRasterized;
+    /// The boundary of the river area.
+    Boundary m_boundary;
+    /// The boundary of the river area in rasterized form (see
+    /// `Boundary::rasterize()`).
+    Boundary m_boundaryRasterized;
 
-		/// The mapping between our coordinates and real-world units.
-		Units m_units;
+    /// The mapping between our coordinates and real-world units.
+    Units m_units;
 
-		/// The minimum elevation across all frames in this time series.
-		double m_minElevation = std::numeric_limits<double>::infinity();
-		/// The maximum elevation across all frames in this time series.
-		double m_maxElevation = -std::numeric_limits<double>::infinity();
+    /// The minimum elevation across all frames in this time series.
+    double m_minElevation = std::numeric_limits<double>::infinity();
+    /// The maximum elevation across all frames in this time series.
+    double m_maxElevation = -std::numeric_limits<double>::infinity();
 };
 
 #endif /* RIVERDATA_H */
