@@ -11,8 +11,8 @@ std::vector<Point> PathSimilarityComputer::computeMostSimilarPath(std::vector<Po
         auto& startingVertex = m_graph.m_networkGraph[i];
         std::vector<double> DTW_init(inputPath.size());
         DTW_init[0] = startingVertex.p.distanceTo(inputPath[0]);
-        for (int i = 1; i < DTW_init.size(); i++) {
-            DTW_init[i] += DTW_init[i - 1] + startingVertex.p.distanceTo(inputPath[i]);
+        for (int j = 1; j < DTW_init.size(); j++) {
+            DTW_init[j] += DTW_init[j - 1] + startingVertex.p.distanceTo(inputPath[j]);
         }
         std::unordered_set<int> verticesInsidePath {startingVertex.id};
         std::vector<int> verticesPath {startingVertex.id};
