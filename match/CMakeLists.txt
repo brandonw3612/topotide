@@ -13,6 +13,12 @@ add_executable(topotide-match
         Frame.cpp
         SubdividedAbstractGraph.cpp
         PathSimilarityComputer.cpp
+        Reach.cpp
+        NetworkGraphEdgeConnector.cpp
+        ReachNetwork.cpp
+        Counters.cpp
+        ReachNetworkDisplayFrame.cpp
+        ReachNetworkDisplayFrame.h
 )
 target_link_libraries(topotide-match PRIVATE topotidelib)
 target_link_libraries(topotide-match PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::OpenGL Qt6::OpenGLWidgets)

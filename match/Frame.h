@@ -8,6 +8,8 @@
 
 class Frame {
 public:
+    virtual ~Frame() = default;
+
     virtual QGraphicsScene* getScene(int maxDepth, double minDelta) const = 0;
     virtual const QString& getName() const = 0;
 

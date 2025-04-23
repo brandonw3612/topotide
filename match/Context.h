@@ -5,11 +5,11 @@
 #include <vector>
 #include <string>
 
-#include "AbstractChannel.h"
 #include "ProgressReporter.h"
 #include "RiverData.h"
-#include "AbstractGraph.h"
 #include "AbstractFrame.h"
+#include "ReachNetwork.h"
+#include "ReachNetworkDisplayFrame.h"
 
 
 class Context : QObject {
@@ -18,13 +18,13 @@ class Context : QObject {
 
 private:
     std::shared_ptr<RiverData> m_riverData;
-    std::vector<std::shared_ptr<AbstractFrame>> m_frames;
+    std::vector<std::shared_ptr<ReachNetworkDisplayFrame>> m_frames;
 
 private:
     std::shared_ptr<ProgressReporter> m_pr;
 
 public:
-    const std::vector<std::shared_ptr<AbstractFrame>>& getFrames() const { return m_frames; }
+    [[nodiscard]] const std::vector<std::shared_ptr<ReachNetworkDisplayFrame>>& getFrames() const { return m_frames; }
 
 public:
     void openFrames(QStringList& fileNames);
@@ -34,10 +34,7 @@ public:
 
 private:
     static std::shared_ptr<RiverFrame> loadFrame(const QString& file_name, Units& units);
-    static std::shared_ptr<AbstractGraph> buildAbstraction(const std::shared_ptr<NetworkGraph>& networkGraph);
-    static void mergeChannels(std::vector<std::shared_ptr<AbstractChannel>>& channels,
-                              const std::vector<std::shared_ptr<AbstractChannel>>::iterator& channel);
-    static std::vector<std::shared_ptr<AbstractChannel>> buildAbstractChannelFromEdges(const std::vector<NetworkGraph::Edge>& edges);
+    static std::shared_ptr<ReachNetwork> buildReachNetwork(const std::shared_ptr<NetworkGraph>& networkGraph);
 };
 
 
