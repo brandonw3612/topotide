@@ -8,22 +8,6 @@ AbstractFrame::AbstractFrame(const QString& name, const std::shared_ptr<Abstract
     m_graph = graph;
 }
 
-QPainterPath AbstractFrame::createPath(const std::vector<Point> &points) {
-    QPainterPath path;
-    int index = 0;
-    while (index < points.size() && !std::isfinite(points[index].h)) index++;
-    if (index == points.size()) return path;
-    path.moveTo(points[index].x, points[index].y);
-    index++;
-    while (index < points.size()) {
-        if (std::isfinite(points[index].h)) {
-            path.lineTo(points[index].x, points[index].y);
-        }
-        index++;
-    }
-    return path;
-}
-
 QGraphicsScene *AbstractFrame::getScene(int maxDepth, double minDelta) const {
     auto bounds = m_graph->getBounds();
     auto width = bounds.second.x - bounds.first.x;

@@ -1,25 +1,23 @@
-#ifndef TOPOTIDE_ABSTRACTFRAME_H
-#define TOPOTIDE_ABSTRACTFRAME_H
+#ifndef REACHNETWORKDISPLAYFRAME_H
+#define REACHNETWORKDISPLAYFRAME_H
 
-#include <QString>
-#include <QGraphicsScene>
-#include "AbstractGraph.h"
 #include "Frame.h"
+#include "ReachNetwork.h"
 
-// TODO: It is a bit weird that AbstractFrame inherits from Frame, which is an abstract class.
-// This could be combined with renaming AbstractChannel and AbstractGraph since these are also not abstract classes.
-class AbstractFrame : public Frame {
+/// Display frame for a reach network which prepares the data for visualization.
+class ReachNetworkDisplayFrame : public Frame {
 private:
+    /// Name of the reach network.
     QString m_name;
-    std::shared_ptr<AbstractGraph> m_graph;
+    /// The reach network to be displayed.
+    std::shared_ptr<ReachNetwork> m_network;
 
 public:
-    explicit AbstractFrame(const QString& name, const std::shared_ptr<AbstractGraph>& graph);
+    explicit ReachNetworkDisplayFrame(const QString& name, const std::shared_ptr<ReachNetwork>& network);
 
     [[nodiscard]] const QString& getName() const override { return m_name; }
-    [[nodiscard]] const std::shared_ptr<AbstractGraph>& getGraph() const { return m_graph; }
+    [[nodiscard]] const std::shared_ptr<ReachNetwork>& getNetwork() const { return m_network; }
 
-public:
     [[nodiscard]] QGraphicsScene* getScene(int maxDepth, double minDelta) const override;
 
 private:
@@ -39,4 +37,6 @@ private:
     };
 };
 
-#endif //TOPOTIDE_ABSTRACTFRAME_H
+
+
+#endif //REACHNETWORKDISPLAYFRAME_H

@@ -4,15 +4,15 @@
 
 #include <iostream>
 #include <map>
-#include <unordered_set>
 #include <QFileInfo>
 
 #include "io/esrigridreader.h"
 #include "io/gdalreader.h"
 #include "io/textfilereader.h"
 
-#include "ProgressReporter.h"
 #include "AbstractChannel.h"
+#include "NetworkGraphEdgeConnector.h"
+#include "ReachNetworkDisplayFrame.h"
 
 void Context::openFrames(QStringList& fileNames) {
     // Not reachable in CLI
@@ -200,43 +200,7 @@ void Context::computeNetworkGraph() {
     std::cout << std::endl;
 }
 
-void Context::mergeChannels(std::vector<std::shared_ptr<AbstractChannel>> &channels,
-                            const std::vector<std::shared_ptr<AbstractChannel>>::iterator &channel) {
-    // TODO: How can we avoid this?
-    auto ch = *channel;
-    channels.erase(channel);
-    for (auto c = channels.begin(); c != channels.end(); c++) {
-        if (c->get()->mergeChannel(ch)) {
-            mergeChannels(channels, c);
-            return;
-        }
-    }
-    channels.push_back(ch);
-}
-
-std::vector<std::shared_ptr<AbstractChannel>> Context::buildAbstractChannelFromEdges(const std::vector<NetworkGraph::Edge> &edges) {
-    std::vector<std::shared_ptr<AbstractChannel>> channels;
-    for (auto const &edge : edges) {
-        if (channels.empty()) {
-            channels.push_back(std::make_shared<AbstractChannel>(edge));
-        } else {
-            bool appended = false;
-            for (auto c = channels.begin(); c != channels.end(); c++) {
-                if (c->get()->appendEdge(edge)) {
-                    appended = true;
-                    mergeChannels(channels, c);
-                    break;
-                }
-            }
-            if (!appended) {
-                channels.push_back(std::make_shared<AbstractChannel>(edge));
-            }
-        }
-    }
-    return channels;
-}
-
-std::shared_ptr<AbstractGraph> Context::buildAbstraction(const std::shared_ptr<NetworkGraph> &networkGraph) {
+std::shared_ptr<ReachNetwork> Context::buildReachNetwork(const std::shared_ptr<NetworkGraph> &networkGraph) {
     std::map<double, std::vector<NetworkGraph::Edge>, std::greater<>> deltaMap;
     for (int i = 0; i < networkGraph->edgeCount(); ++i) {
         auto delta = networkGraph->edge(i).delta;
@@ -246,32 +210,40 @@ std::shared_ptr<AbstractGraph> Context::buildAbstraction(const std::shared_ptr<N
             deltaMap[delta].push_back(networkGraph->edge(i));
         }
     }
-    std::vector<std::shared_ptr<AbstractGraph::AGNode>> nodes;
-    std::vector<int> pc(networkGraph->vertexCount(), -1);
-    int channelIndex = 0;
+    auto network = ReachNetwork::create();
+    std::vector pc(networkGraph->vertexCount(), -1);
     for (const auto &p: deltaMap) {
-        // if (p.first <= 0) break;
-        auto channels = buildAbstractChannelFromEdges(p.second);
-        for (const auto &c: channels) {
-            auto node = std::make_shared<AbstractGraph::AGNode>(c);
-            nodes.push_back(node);
-            if (pc[c->getStartPointID()] >= 0) node->setSplittingParent(nodes[pc[c->getStartPointID()]]);
-            if (pc[c->getEndPointID()] >= 0) node->setMergingParent(nodes[pc[c->getEndPointID()]]);
-            for (const auto &id: c->getPointIDs()) {
-                if (pc[id] >= 0) continue;
-                pc[id] = channelIndex;
+        auto reaches = NetworkGraphEdgeConnector::connect(p.second);
+        for (const auto &r: reaches) {
+            auto node = network->createNode(r);
+            if (pc[r->getFront().index] >= 0) {
+                network->addEdge(
+                    pc[r->getFront().index],
+                    r->getIndex(),
+                    {r->getFront().index, (*networkGraph)[r->getFront().index].p}
+                );
             }
-            channelIndex++;
+            if (pc[r->getBack().index] >= 0) {
+                network->addEdge(
+                    pc[r->getBack().index],
+                    r->getIndex(),
+                    {r->getBack().index, (*networkGraph)[r->getBack().index].p}
+                );
+            }
+            for (const auto &ip: r->getIntersectionPoints()) {
+                if (pc[ip.index] >= 0) continue;
+                pc[ip.index] = r->getIndex();
+            }
         }
     }
-    return std::make_shared<AbstractGraph>(nodes);
+    return network;
 }
 
 void Context::buildAbstractionForAllFrames() {
     for (auto i = 0; i < m_riverData->frameCount(); i++) {
         auto frame = m_riverData->getFrame(i);
-        auto abs = buildAbstraction(frame->m_networkGraph);
+        auto rn = buildReachNetwork(frame->m_networkGraph);
         QFileInfo fileInfo(frame->m_name);
-        m_frames.push_back(std::make_shared<AbstractFrame>(fileInfo.baseName(), abs));
+        m_frames.push_back(std::make_shared<ReachNetworkDisplayFrame>(fileInfo.baseName(), rn));
     }
 }
