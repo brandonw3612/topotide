@@ -17,14 +17,21 @@ private:
     class Edge;
 
 public:
+    enum Connection {
+        Upstream = 0,
+        Downstream = 1
+    };
+
     /// Parent/Child relationship indicating the intersection point and the other node from a specific one.
     typedef class _ {
+        Connection m_connection;
         Reach::IndexedPoint m_intersection;
         std::shared_ptr<Node> m_node;
 
     public:
-        explicit _(const Reach::IndexedPoint& intersection, const std::shared_ptr<Node>& node);
+        explicit _(Connection connection, const Reach::IndexedPoint& intersection, const std::shared_ptr<Node>& node);
 
+        [[nodiscard]] Connection getConnection() const { return m_connection; }
         [[nodiscard]] Reach::IndexedPoint getIntersection() const { return m_intersection; }
         [[nodiscard]] std::shared_ptr<Node> getNode() const { return m_node; }
     } Parent, Child;
@@ -47,8 +54,10 @@ public:
         /// Gets the reach associated with this node.
         [[nodiscard]] std::shared_ptr<Reach> getReach() const { return m_reach; }
 
-        /// Gets the parent nodes of this node in the network.
-        [[nodiscard]] std::vector<std::shared_ptr<Parent>> getParents() const;
+        /// Gets the upstream parent node of this node in the network.
+        [[nodiscard]] std::shared_ptr<Parent> getUpstreamParent() const;
+        /// Gets the downstream parent node of this node in the network.
+        [[nodiscard]] std::shared_ptr<Parent> getDownstreamParent() const;
         /// Gets the child nodes of this node in the network.
         [[nodiscard]] std::vector<std::shared_ptr<Child>> getChildren() const;
 
@@ -83,25 +92,32 @@ private:
     std::shared_ptr<ReachNetwork> m_self;
     /// Nodes mapped by their unique index.
     std::map<int, std::shared_ptr<Node>> m_nodes;
-    /// Edges connecting the nodes in the network.
-    std::vector<std::shared_ptr<Edge>> m_edges;
+    /// Upstream edges connecting the nodes in the network.
+    std::vector<std::shared_ptr<Edge>> m_upstreamEdges;
+    /// Downstream edges connecting the nodes in the network.
+    std::vector<std::shared_ptr<Edge>> m_downstreamEdges;
 
     /// Hidden constructor for creating a reach network. This constructor should only be called from the static create() method.
     ReachNetwork() = default;
-    /// Queries the parent nodes of a specific node in the network. This function should only be called by the nodes.
-    [[nodiscard]] std::vector<std::shared_ptr<Parent>> getParents(int index);
-    /// Queries the child nodes of a specific node in the network. This function should only be called by the nodes.
+    /// Queries the upstream parent nodes of a specific node in the network. This function should only be called from the nodes.
+    [[nodiscard]] std::shared_ptr<Parent> getUpstreamParent(int index);
+    /// Queries the downstream parent nodes of a specific node in the network. This function should only be called from the nodes.
+    [[nodiscard]] std::shared_ptr<Parent> getDownstreamParent(int index);
+    /// Queries the child nodes of a specific node in the network. This function should only be called from the nodes.
     [[nodiscard]] std::vector<std::shared_ptr<Child>> getChildren(int index);
 
 public:
     /// Creates a new Reach node in the network.
     std::shared_ptr<Node> createNode(const std::shared_ptr<Reach>& reach);
     /// Connects two nodes in the network with an edge.
-    void addEdge(int parentIndex, int childIndex, const Reach::IndexedPoint& intersection);
+    void addEdge(Connection connection, int parentIndex, int childIndex, const Reach::IndexedPoint& intersection);
     /// Gets the bounds of the network.
     [[nodiscard]] std::pair<Point, Point> getBounds() const;
     /// Gets all nodes in the network.
     [[nodiscard]] decltype(auto) getNodes() const { return std::views::values(m_nodes); }
+    /// Filter the nodes in the network based on a predicate function.
+    /// @return A new ReachNetwork instance containing only the nodes and connections that satisfy the predicate.
+    std::shared_ptr<ReachNetwork> filter(const std::function<bool(const std::shared_ptr<Node>&)>& predicate);
 
 public:
     /// Creates a new ReachNetwork instance.
