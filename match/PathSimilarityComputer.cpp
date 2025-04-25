@@ -6,9 +6,8 @@
 std::vector<Point> PathSimilarityComputer::computeMostSimilarPath(std::vector<Point> inputPath)
 {
     StatusStructure statusStructure;
-    auto& startingVertices = m_graph.m_networkGraph;
-    for (int i = 0; i < m_graph.m_networkGraph.vertexCount(); i++) {
-        auto& startingVertex = m_graph.m_networkGraph[i];
+    for (int i = 0; i < m_graph->vertexCount(); i++) {
+        auto& startingVertex = (*m_graph)[i];
         std::vector<double> DTW_init(inputPath.size());
         DTW_init[0] = startingVertex.p.distanceTo(inputPath[0]);
         for (int j = 1; j < DTW_init.size(); j++) {
@@ -17,8 +16,8 @@ std::vector<Point> PathSimilarityComputer::computeMostSimilarPath(std::vector<Po
         std::unordered_set<int> verticesInsidePath {startingVertex.id};
         std::vector<int> verticesPath {startingVertex.id};
 
-        for (auto& edgeID : m_graph.adjacencyList[startingVertex.id]) {
-            auto& edge = m_graph.m_networkGraph.edge(edgeID);
+        for (auto& edgeID : (*m_graph)[i].incidentEdges) {
+            auto& edge = m_graph->edge(edgeID);
             if (verticesInsidePath.count(edge.to)) continue;
             recursiveComputeMostSimilarPath(edge, verticesInsidePath, verticesPath, DTW_init, statusStructure, inputPath);
         }
@@ -29,8 +28,8 @@ std::vector<Point> PathSimilarityComputer::computeMostSimilarPath(std::vector<Po
         int startVertexID = statusStructure.verticesPath[i];
         int endVertexID = statusStructure.verticesPath[i + 1];
         bool edgeFound = false;
-        for (auto& edgeID : m_graph.adjacencyList[startVertexID]) {
-            auto& edge = m_graph.m_networkGraph.edge(edgeID);
+        for (auto& edgeID : (*m_graph)[startVertexID].incidentEdges) {
+            auto& edge = m_graph->edge(edgeID);
             if (edge.to != endVertexID) continue;
 
             edgeFound = true;
@@ -66,8 +65,8 @@ void PathSimilarityComputer::recursiveComputeMostSimilarPath(NetworkGraph::Edge&
         statusStructure.verticesPath = verticesPath;
     }
 
-    for (auto& checkEdgeID : m_graph.adjacencyList[edge.to]) {
-        auto& checkEdge = m_graph.m_networkGraph.edge(checkEdgeID);
+    for (auto& checkEdgeID : (*m_graph)[edge.to].incidentEdges) {
+        auto& checkEdge = m_graph->edge(checkEdgeID);
         if (verticesInsidePath.count(checkEdge.to)) continue;
         recursiveComputeMostSimilarPath(checkEdge, verticesInsidePath, verticesPath, DTW.back(), statusStructure, inputPath);
     }

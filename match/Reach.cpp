@@ -9,7 +9,9 @@ Reach::Builder::Builder(const NetworkGraph::Edge &edge) {
     m_reach->m_points = edge.path;
 
     m_reach->m_intersectionPoints.emplace_back(edge.from, edge.path.front());
+    m_reach->m_ipIndices.emplace_back(0);
     m_reach->m_intersectionPoints.emplace_back(edge.to, edge.path.back());
+    m_reach->m_ipIndices.emplace_back(static_cast<int>(edge.path.size()) - 1);
 
     m_reach->m_lowerBound = edge.path[0];
     m_reach->m_upperBound = edge.path[0];
@@ -23,6 +25,7 @@ bool Reach::Builder::appendEdge(const NetworkGraph::Edge &edge) const {
             prepend(m_reach->m_points, edge.path[i]);
         }
         prepend(m_reach->m_intersectionPoints, {edge.to, edge.path.back()});
+        prepend(m_reach->m_ipIndices, m_reach->m_ipIndices.front() - pathLength + 1);
         updateBounds(edge);
         return true;
     }
@@ -31,6 +34,7 @@ bool Reach::Builder::appendEdge(const NetworkGraph::Edge &edge) const {
             prepend(m_reach->m_points, edge.path[i]);
         }
         prepend(m_reach->m_intersectionPoints, {edge.from, edge.path.front()});
+        prepend(m_reach->m_ipIndices, m_reach->m_ipIndices.front() - pathLength + 1);
         updateBounds(edge);
         return true;
     }
@@ -39,6 +43,7 @@ bool Reach::Builder::appendEdge(const NetworkGraph::Edge &edge) const {
             m_reach->m_points.push_back(edge.path[i]);
         }
         m_reach->m_intersectionPoints.emplace_back(edge.to, edge.path.back());
+        m_reach->m_ipIndices.emplace_back(m_reach->m_ipIndices.back() + pathLength - 1);
         updateBounds(edge);
         return true;
     }
@@ -47,6 +52,7 @@ bool Reach::Builder::appendEdge(const NetworkGraph::Edge &edge) const {
             m_reach->m_points.push_back(edge.path[i]);
         }
         m_reach->m_intersectionPoints.emplace_back(edge.from, edge.path.front());
+        m_reach->m_ipIndices.emplace_back(m_reach->m_ipIndices.back() + pathLength - 1);
         updateBounds(edge);
         return true;
     }
@@ -60,8 +66,10 @@ bool Reach::Builder::pendReach(const std::shared_ptr<Builder> &other) const {
         for (int i = 1; i < pathLength; ++i) {
             prepend(m_reach->m_points, other->m_reach->m_points[i]);
         }
+        auto indexOffset = m_reach->m_ipIndices.front() + other->m_reach->m_ipIndices.front();
         for (int i = 1; i < labeledPointLength; ++i) {
             prepend(m_reach->m_intersectionPoints, other->m_reach->m_intersectionPoints[i]);
+            prepend(m_reach->m_ipIndices, -other->m_reach->m_ipIndices[i] + indexOffset);
         }
         updateBounds(other);
         return true;
@@ -70,8 +78,10 @@ bool Reach::Builder::pendReach(const std::shared_ptr<Builder> &other) const {
         for (int i = pathLength - 2; i >= 0; --i) {
             prepend(m_reach->m_points, other->m_reach->m_points[i]);
         }
+        auto indexOffset = m_reach->m_ipIndices.front() - other->m_reach->m_ipIndices.back();
         for (int i = labeledPointLength - 2; i >= 0; --i) {
             prepend(m_reach->m_intersectionPoints, other->m_reach->m_intersectionPoints[i]);
+            prepend(m_reach->m_ipIndices, other->m_reach->m_ipIndices[i] + indexOffset);
         }
         updateBounds(other);
         return true;
@@ -80,8 +90,10 @@ bool Reach::Builder::pendReach(const std::shared_ptr<Builder> &other) const {
         for (int i = 1; i < pathLength; ++i) {
             m_reach->m_points.push_back(other->m_reach->m_points[i]);
         }
+        auto indexOffset = m_reach->m_ipIndices.back() - other->m_reach->m_ipIndices.front();
         for (int i = 1; i < labeledPointLength; ++i) {
             m_reach->m_intersectionPoints.push_back(other->m_reach->m_intersectionPoints[i]);
+            m_reach->m_ipIndices.push_back(other->m_reach->m_ipIndices[i] + indexOffset);
         }
         updateBounds(other);
         return true;
@@ -90,8 +102,10 @@ bool Reach::Builder::pendReach(const std::shared_ptr<Builder> &other) const {
         for (int i = pathLength - 2; i >= 0; --i) {
             m_reach->m_points.push_back(other->m_reach->m_points[i]);
         }
+        auto indexOffset = m_reach->m_ipIndices.back() + other->m_reach->m_ipIndices.back();
         for (int i = labeledPointLength - 2; i >= 0; --i) {
             m_reach->m_intersectionPoints.push_back(other->m_reach->m_intersectionPoints[i]);
+            m_reach->m_ipIndices.push_back(-other->m_reach->m_ipIndices[i] + indexOffset);
         }
         updateBounds(other);
         return true;
@@ -101,6 +115,10 @@ bool Reach::Builder::pendReach(const std::shared_ptr<Builder> &other) const {
 
 std::shared_ptr<Reach> Reach::Builder::build() {
     m_reach->index = Counters::nextReach();
+    auto ipOffset = m_reach->m_ipIndices.front();
+    for (int i = 0; i < m_reach->m_ipIndices.size(); ++i) {
+        m_reach->m_ipIndices[i] -= ipOffset;
+    }
     return m_reach;
 }
 

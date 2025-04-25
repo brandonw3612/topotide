@@ -74,6 +74,8 @@ private:
     std::vector<Point> m_points;
     /// Sequence of intersection points along the reach.
     std::vector<IndexedPoint> m_intersectionPoints;
+    /// Indices of intersection points in the original point sequence.
+    std::vector<int> m_ipIndices;
     /// Lower bound of the reach.
     Point m_lowerBound;
     /// Upper bound of the reach.
@@ -88,6 +90,8 @@ public:
     [[nodiscard]] const std::vector<Point>& getPoints() const { return m_points; }
     /// Gets the sequence of intersection points along the reach.
     [[nodiscard]] const std::vector<IndexedPoint>& getIntersectionPoints() const { return m_intersectionPoints; }
+    /// Gets the indices of intersection points in the original point sequence.
+    [[nodiscard]] const std::vector<int>& getIpIndices() const { return m_ipIndices; }
     /// Gets the front point of the reach.
     [[nodiscard]] IndexedPoint getFront() const { return m_intersectionPoints.front(); }
     /// Gets the back point of the reach.

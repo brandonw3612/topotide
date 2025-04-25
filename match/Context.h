@@ -3,11 +3,9 @@
 
 #include <memory>
 #include <vector>
-#include <string>
 
 #include "ProgressReporter.h"
 #include "RiverData.h"
-#include "AbstractFrame.h"
 #include "ReachNetwork.h"
 #include "ReachNetworkDisplayFrame.h"
 
@@ -34,7 +32,6 @@ public:
 
 private:
     static std::shared_ptr<RiverFrame> loadFrame(const QString& file_name, Units& units);
-    static std::shared_ptr<ReachNetwork> buildReachNetwork(const std::shared_ptr<NetworkGraph>& networkGraph);
 };
 
 

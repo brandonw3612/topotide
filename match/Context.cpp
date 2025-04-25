@@ -3,14 +3,13 @@
 #include "GraphComputer.h"
 
 #include <iostream>
-#include <map>
 #include <QFileInfo>
 
 #include "io/esrigridreader.h"
 #include "io/gdalreader.h"
 #include "io/textfilereader.h"
 
-#include "AbstractChannel.h"
+#include "NetworkConverter.h"
 #include "NetworkGraphEdgeConnector.h"
 #include "ReachNetworkDisplayFrame.h"
 
@@ -200,49 +199,10 @@ void Context::computeNetworkGraph() {
     std::cout << std::endl;
 }
 
-std::shared_ptr<ReachNetwork> Context::buildReachNetwork(const std::shared_ptr<NetworkGraph> &networkGraph) {
-    std::map<double, std::vector<NetworkGraph::Edge>, std::greater<>> deltaMap;
-    for (int i = 0; i < networkGraph->edgeCount(); ++i) {
-        auto delta = networkGraph->edge(i).delta;
-        if (deltaMap.find(delta) == deltaMap.end()) {
-            deltaMap[delta] = {networkGraph->edge(i)};
-        } else {
-            deltaMap[delta].push_back(networkGraph->edge(i));
-        }
-    }
-    auto network = ReachNetwork::create();
-    std::vector pc(networkGraph->vertexCount(), -1);
-    for (const auto &p: deltaMap) {
-        auto reaches = NetworkGraphEdgeConnector::connect(p.second);
-        for (const auto &r: reaches) {
-            auto node = network->createNode(r);
-            if (pc[r->getFront().index] >= 0) {
-                network->addEdge(
-                    pc[r->getFront().index],
-                    r->getIndex(),
-                    {r->getFront().index, (*networkGraph)[r->getFront().index].p}
-                );
-            }
-            if (pc[r->getBack().index] >= 0) {
-                network->addEdge(
-                    pc[r->getBack().index],
-                    r->getIndex(),
-                    {r->getBack().index, (*networkGraph)[r->getBack().index].p}
-                );
-            }
-            for (const auto &ip: r->getIntersectionPoints()) {
-                if (pc[ip.index] >= 0) continue;
-                pc[ip.index] = r->getIndex();
-            }
-        }
-    }
-    return network;
-}
-
 void Context::buildAbstractionForAllFrames() {
     for (auto i = 0; i < m_riverData->frameCount(); i++) {
         auto frame = m_riverData->getFrame(i);
-        auto rn = buildReachNetwork(frame->m_networkGraph);
+        auto rn = NetworkConverter::ng2rn(frame->m_networkGraph);
         QFileInfo fileInfo(frame->m_name);
         m_frames.push_back(std::make_shared<ReachNetworkDisplayFrame>(fileInfo.baseName(), rn));
     }

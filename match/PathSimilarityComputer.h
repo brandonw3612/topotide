@@ -3,8 +3,9 @@
 
 #include <vector>
 #include <unordered_set>
+
+#include "networkgraph.h"
 #include "point.h"
-#include "SubdividedAbstractGraph.h"
 
 class PathSimilarityComputer {
 private:
@@ -15,10 +16,10 @@ private:
     };
 
 private:
-    SubdividedAbstractGraph m_graph;
+    std::shared_ptr<NetworkGraph> m_graph;
 
 public:
-    PathSimilarityComputer(SubdividedAbstractGraph& graph) : m_graph(graph) {}
+    explicit PathSimilarityComputer(const std::shared_ptr<NetworkGraph>& graph) { m_graph = graph; }
     std::vector<Point> computeMostSimilarPath(std::vector<Point> inputPath);
 private:
     void recursiveComputeMostSimilarPath(NetworkGraph::Edge& edge, std::unordered_set<int> verticesInsidePath,

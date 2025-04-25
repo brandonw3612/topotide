@@ -1,12 +1,12 @@
+#include <chrono>
+#include <QApplication>
+
 #include "Context.h"
 #include "DualFrameViewer.h"
 #include "Frame.h"
+#include "NetworkConverter.h"
 #include "PathFrame.h"
-#include "SubdividedAbstractGraph.h"
 #include "PathSimilarityComputer.h"
-#include <QApplication>
-#include <QGraphicsView>
-#include <chrono>
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
@@ -25,21 +25,23 @@ int main(int argc, char* argv[]) {
     auto fs = context.getFrames();
     auto end = std::chrono::steady_clock::now();
     std::cout << "Time for abstraction graph: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " seconds" << std::endl;
-    
+
     begin = std::chrono::steady_clock::now();
-    auto frameContainingPath = fs[0];
-    auto parentChannel = frameContainingPath->getGraph()->getParentlessChannel(100.0);
-    auto path = parentChannel->getPoints();
-    auto pathFrame = std::make_shared<PathFrame>("Main path 1964", path, frameContainingPath->getGraph()->getBounds());
+    auto network1964 = fs[0]->getNetwork();
+    const auto infiniteDeltaFilter = [](const auto& n) { return !std::isfinite(n->getReach()->getDelta()); };
+    auto infReach = network1964->filter(infiniteDeltaFilter)->getNodes().front()->getReach();
+    auto path = infReach->getPoints();
+    auto pathFrame = std::make_shared<PathFrame>("Main path 1964", path, network1964->getBounds());
     end = std::chrono::steady_clock::now();
     std::cout << "Time for subdivided graph: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " seconds" << std::endl;
     
     begin = std::chrono::steady_clock::now();
-    auto frameContaingGraph = fs[1];
-    auto subdividedGraph = SubdividedAbstractGraph(frameContaingGraph->getGraph(), 10, 10000.0);
-    auto pathSimilarityComputer = PathSimilarityComputer(subdividedGraph);
+    auto network1968 = fs[1]->getNetwork();
+    const auto deltaFilter = [](const auto& n) { return n->getReach()->getDelta() > 100; };
+    auto network1968Filtered = network1968->filter(deltaFilter);
+    auto pathSimilarityComputer = PathSimilarityComputer(NetworkConverter::rn2ng(network1968Filtered));
     std::vector<Point> matchedPath = pathSimilarityComputer.computeMostSimilarPath(path);
-    auto matchedPathFrame = std::make_shared<PathFrame>("Matched path 1968", matchedPath, frameContaingGraph->getGraph()->getBounds());
+    auto matchedPathFrame = std::make_shared<PathFrame>("Matched path 1968", matchedPath, network1968->getBounds());
     end = std::chrono::steady_clock::now();
     std::cout << "Time for path matching: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " seconds" << std::endl;
 

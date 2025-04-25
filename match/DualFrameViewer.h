@@ -7,7 +7,8 @@
 #include <QVBoxLayout>
 #include <QSpinBox>
 #include <QGraphicsView>
-#include "AbstractFrame.h"
+
+#include "Frame.h"
 #include "SGraphicsView.h"
 
 // Q_DECLARE_METATYPE(std::shared_ptr<AbstractFrame>)
