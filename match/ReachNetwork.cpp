@@ -103,22 +103,22 @@ std::vector<std::shared_ptr<ReachNetwork::Child>> ReachNetwork::Node::getChildre
 }
 
 std::shared_ptr<ReachNetwork> ReachNetwork::filter(const std::function<bool(const std::shared_ptr<Node> &)>& predicate) {
-    auto filteredNetwork = std::make_shared<ReachNetwork>();
-    for (const auto& [index, node] : m_nodes) {
+    auto filteredNetwork = std::shared_ptr<ReachNetwork>(new ReachNetwork());
+    for (const auto &node: m_nodes | std::views::values) {
         if (predicate(node)) {
-            filteredNetwork->m_nodes[index] = node;
+            filteredNetwork->createNode(node->getReach());
         }
     }
     for (const auto& edge : m_upstreamEdges) {
         if (filteredNetwork->m_nodes.contains(edge->getParentIndex()) &&
                 filteredNetwork->m_nodes.contains(edge->getChildIndex())) {
-            filteredNetwork->m_upstreamEdges.push_back(edge);
+            filteredNetwork->addEdge(Upstream, edge->getParentIndex(), edge->getChildIndex(), edge->getIntersection());
         }
     }
     for (const auto& edge : m_downstreamEdges) {
         if (filteredNetwork->m_nodes.contains(edge->getParentIndex()) &&
                 filteredNetwork->m_nodes.contains(edge->getChildIndex())) {
-            filteredNetwork->m_downstreamEdges.push_back(edge);
+            filteredNetwork->addEdge(Downstream, edge->getParentIndex(), edge->getChildIndex(), edge->getIntersection());
         }
     }
     return filteredNetwork;
