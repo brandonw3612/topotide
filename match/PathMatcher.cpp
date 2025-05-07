@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <numeric>
+
 #include "PathMatcher.h"
 
 PathMatcher::PathMatcher(const Path &inputPath, const std::shared_ptr<NetworkGraph> &graph) {
@@ -10,12 +13,24 @@ const PathMatcher::Path &PathMatcher::computeClosestPath() {
     m_minDTWD = std::numeric_limits<double>::infinity();
     m_bestPath.clear();
 
+    struct ClosestVertexCompare {
+
+    };
+    std::vector<int> vertexOrder(m_graph->vertexCount());
+    std::iota(vertexOrder.begin(), vertexOrder.end(), 0);
+    std::sort(vertexOrder.begin(), vertexOrder.end(), [this](const auto& a, const auto& b) {
+        auto vertexA = (*m_graph)[a];
+        auto vertexB = (*m_graph)[b];
+        auto startingPoint = m_inputPath[0];
+        return vertexA.p.distanceTo(startingPoint) < vertexB.p.distanceTo(startingPoint);
+    });
+
     for (int i = 0; i < m_graph->vertexCount(); ++i) {
         m_vertexStack.clear();
         m_edgeStack.clear();
         m_dtwStack = std::stack<DTWRow>();
 
-        auto vertex = (*m_graph)[i];
+        auto vertex = (*m_graph)[vertexOrder[i]];
         m_vertexStack.push(vertex.id);
         DTWRow firstRow(m_inputPath.size());
         firstRow[0] = m_inputPath[0].distanceTo(vertex.p);
@@ -66,7 +81,17 @@ void PathMatcher::dfs() {
         }
         m_dtwStack.push(currentRow);
 
-        dfs();
+        bool canImprove = false;
+        for (auto& d : currentRow) {
+            if (d <= m_minDTWD) {
+                canImprove = true;
+                break;
+            }
+        }
+
+        if (canImprove) {
+            dfs();
+        }
 
         m_dtwStack.pop();
         m_edgeStack.pop();

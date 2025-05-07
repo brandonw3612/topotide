@@ -5,6 +5,7 @@
 #include <memory>
 #include <ranges>
 #include <vector>
+#include <functional>
 
 #include "Reach.h"
 
