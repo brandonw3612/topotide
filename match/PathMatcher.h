@@ -3,6 +3,8 @@
 
 #include <memory>
 #include <stack>
+#include <queue>
+#include <unordered_set>
 
 #include "networkgraph.h"
 #include "utils/SetStack.hpp"
@@ -28,14 +30,19 @@ private:
     double m_minDTWD;
     Path m_bestPath;
 
+    std::unordered_set<int> m_ignoredEdges;
+    std::priority_queue<std::pair<double, int>> m_lowerBoundEdgeDTWDistanceCostQueue;
+
 private:
     PathMatcher(const Path& inputPath, const std::shared_ptr<NetworkGraph>& graph);
-    const Path& computeClosestPath();
+    const Path& computeClosestPath(double absoluteDistanceThreshold);
     [[nodiscard]] Path flattenPathStack() const;
     void dfs();
+    void filterEdgesOnAbsoluteDistance(double absoluteDistanceThreshold);
+    void initializeLowerBoundEdgeDTWDistanceCostQueue();
 
 public:
-    static const Path& match(const Path& inputPath, const std::shared_ptr<NetworkGraph>& graph);
+    static const Path& match(const Path& inputPath, const std::shared_ptr<NetworkGraph>& graph, double absoluteDistanceThreshold);
 };
 
 

@@ -9,13 +9,14 @@ PathMatcher::PathMatcher(const Path &inputPath, const std::shared_ptr<NetworkGra
     m_minDTWD = std::numeric_limits<double>::infinity();
 }
 
-const PathMatcher::Path &PathMatcher::computeClosestPath() {
+const PathMatcher::Path &PathMatcher::computeClosestPath(double absoluteDistanceThreshold) {
     m_minDTWD = std::numeric_limits<double>::infinity();
     m_bestPath.clear();
+    m_ignoredEdges.clear();
 
-    struct ClosestVertexCompare {
+    filterEdgesOnAbsoluteDistance(absoluteDistanceThreshold);
+    initializeLowerBoundEdgeDTWDistanceCostQueue();
 
-    };
     std::vector<int> vertexOrder(m_graph->vertexCount());
     std::iota(vertexOrder.begin(), vertexOrder.end(), 0);
     std::sort(vertexOrder.begin(), vertexOrder.end(), [this](const auto& a, const auto& b) {
@@ -48,6 +49,8 @@ const PathMatcher::Path &PathMatcher::computeClosestPath() {
 void PathMatcher::dfs() {
     const auto currentVertexIndex = m_vertexStack.top();
     for (const auto& edgeID : (*m_graph)[currentVertexIndex].incidentEdges) {
+        if (m_ignoredEdges.count(edgeID)) continue;
+
         const auto& edge = m_graph->edge(edgeID);
         auto otherEnd = edge.from + edge.to - currentVertexIndex;
         if (m_vertexStack.contains(otherEnd)) continue;
@@ -78,6 +81,12 @@ void PathMatcher::dfs() {
         if (finalDTW < m_minDTWD) {
             m_minDTWD = finalDTW;
             m_bestPath = flattenPathStack();
+            // Filter out edges that can never be included
+            while (m_lowerBoundEdgeDTWDistanceCostQueue.size() && m_lowerBoundEdgeDTWDistanceCostQueue.top().first > m_minDTWD) {
+                auto& p = m_lowerBoundEdgeDTWDistanceCostQueue.top();
+                m_lowerBoundEdgeDTWDistanceCostQueue.pop();
+                m_ignoredEdges.insert(p.second);
+            }
         }
         m_dtwStack.push(currentRow);
 
@@ -99,6 +108,44 @@ void PathMatcher::dfs() {
     }
 }
 
+void PathMatcher::filterEdgesOnAbsoluteDistance(double absoluteDistanceThreshold) {
+    int count = 0;
+    for (int i = 0; i < (*m_graph).edgeCount(); i++) {
+        auto& edge = (*m_graph).edge(i);
+        double edgeDistance = std::numeric_limits<double>::infinity();
+        for (auto& p1 : edge.path) {
+            for (auto& p2 : m_inputPath) {
+                edgeDistance = std::min(edgeDistance, p1.distanceTo(p2));
+            }
+        }
+        if (edgeDistance <= absoluteDistanceThreshold) continue;
+        count++;
+        m_ignoredEdges.insert(i);
+    }
+    std::cout << "Edges filtered based on absolute distance: " << count << std::endl;
+}
+
+void PathMatcher::initializeLowerBoundEdgeDTWDistanceCostQueue() {
+    m_lowerBoundEdgeDTWDistanceCostQueue = std::priority_queue<std::pair<double, int>>();
+    for (int i = 0; i < (*m_graph).edgeCount(); i++) {
+        auto& edge = (*m_graph).edge(i);
+        double lowerBound = 0;
+        for (auto& p1 : edge.path) {
+            double bestDistance = std::numeric_limits<double>::infinity();
+            for (auto& p2 : m_inputPath) {
+                bestDistance = std::min(bestDistance, p1.distanceTo(p2));
+            }
+            lowerBound += bestDistance;
+        }
+        m_lowerBoundEdgeDTWDistanceCostQueue.push({lowerBound, i});
+        // Most edges with a high lower bound are already filtered by the absolute distance filter
+        // This optimization might not actually lead to any improvement since edges are a lot smaller for lower deltas,
+        // which leads to lower lower bounds
+        // std::cout << lowerBound << " " << m_ignoredEdges.count(i) << std::endl;
+    }
+    
+}
+
 PathMatcher::Path PathMatcher::flattenPathStack() const {
     Path result;
     for (const auto&[m_edgeIndex, m_reversed] : m_edgeStack.asVector()) {
@@ -112,7 +159,7 @@ PathMatcher::Path PathMatcher::flattenPathStack() const {
     return result;
 }
 
-const PathMatcher::Path & PathMatcher::match(const Path &inputPath, const std::shared_ptr<NetworkGraph> &graph) {
+const PathMatcher::Path & PathMatcher::match(const Path &inputPath, const std::shared_ptr<NetworkGraph> &graph, double absoluteDistanceThreshold) {
     static PathMatcher matcher(inputPath, graph);
-    return matcher.computeClosestPath();
+    return matcher.computeClosestPath(absoluteDistanceThreshold);
 }

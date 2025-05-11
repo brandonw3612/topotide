@@ -37,9 +37,10 @@ int main(int argc, char* argv[]) {
     
     begin = std::chrono::steady_clock::now();
     const auto network1968 = fs[1]->getNetwork();
-    const auto deltaFilter = [](const auto& n) { return n->getReach()->getDelta() > 5000; };
+    const auto deltaFilter = [](const auto& n) { return n->getReach()->getDelta() > 1; };
     const auto network1968Filtered = network1968->filter(deltaFilter);
-    auto matchedPath = PathMatcher::match(path, NetworkConverter::rn2ng(network1968Filtered));
+    // auto matchedPath = PathMatcher::match(path, NetworkConverter::rn2ng(network1968Filtered), std::numeric_limits<double>::infinity());
+    auto matchedPath = PathMatcher::match(path, NetworkConverter::rn2ng(network1968Filtered), 10.0);
     auto matchedPathFrame = std::make_shared<PathFrame>("Matched path 1968", matchedPath, network1968->getBounds());
     end = std::chrono::steady_clock::now();
     std::cout << "Time for path matching: " << std::chrono::duration_cast<std::chrono::seconds>(end - begin).count() << " seconds" << std::endl;
