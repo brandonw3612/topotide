@@ -142,3 +142,10 @@ void Reach::Builder::updateBounds(const std::shared_ptr<Builder> &other) const {
     if (other->m_reach->m_upperBound.y > m_reach->m_upperBound.y)
         m_reach->m_upperBound.y = other->m_reach->m_upperBound.y;
 }
+
+int Reach::findIndexedPoint(int index) const {
+    for (int i = 0; i < m_intersectionPoints.size(); ++i) {
+        if (m_intersectionPoints[i].index == index) return m_ipIndices[i];
+    }
+    return -1;
+}

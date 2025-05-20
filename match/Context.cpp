@@ -202,8 +202,9 @@ void Context::computeNetworkGraph() {
 void Context::buildAbstractionForAllFrames() {
     for (auto i = 0; i < m_riverData->frameCount(); i++) {
         auto frame = m_riverData->getFrame(i);
-        auto rn = NetworkConverter::ng2rn(frame->m_networkGraph);
         QFileInfo fileInfo(frame->m_name);
-        m_frames.push_back(std::make_shared<ReachNetworkDisplayFrame>(fileInfo.baseName(), rn));
+        std::cout << "Converting " << fileInfo.baseName().toStdString() << std::endl;
+        auto rn = NetworkConverter::ng2rn(frame->m_networkGraph);
+        m_frames.push_back(std::make_shared<NetworkDisplayFrame>(fileInfo.baseName(), rn));
     }
 }

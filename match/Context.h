@@ -7,7 +7,7 @@
 #include "ProgressReporter.h"
 #include "RiverData.h"
 #include "ReachNetwork.h"
-#include "ReachNetworkDisplayFrame.h"
+#include "NetworkDisplayFrame.h"
 
 
 class Context : QObject {
@@ -16,13 +16,13 @@ class Context : QObject {
 
 private:
     std::shared_ptr<RiverData> m_riverData;
-    std::vector<std::shared_ptr<ReachNetworkDisplayFrame>> m_frames;
+    std::vector<std::shared_ptr<NetworkDisplayFrame>> m_frames;
 
 private:
     std::shared_ptr<ProgressReporter> m_pr;
 
 public:
-    [[nodiscard]] const std::vector<std::shared_ptr<ReachNetworkDisplayFrame>>& getFrames() const { return m_frames; }
+    [[nodiscard]] const std::vector<std::shared_ptr<NetworkDisplayFrame>>& getFrames() const { return m_frames; }
 
 public:
     void openFrames(QStringList& fileNames);

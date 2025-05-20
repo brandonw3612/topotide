@@ -14,7 +14,7 @@ QGraphicsScene* ReachNetworkDisplayFrame::getScene(int maxDepth, double minDelta
     auto scene = new QGraphicsScene(bounds.first.x, bounds.first.y,
                                  width, height);
     scene->setBackgroundBrush(QBrush(Qt::black));
-    for (const auto &node: m_network->getNodes()) {
+    for (const auto &[_, node]: m_network->getNodes()) {
         auto depth = node->getDepth();
         if (depth > maxDepth || node->getReach()->getDelta() < minDelta) continue;
         auto path = createPath(node->getReach()->getPoints());

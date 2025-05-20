@@ -1,10 +1,12 @@
 #include "SGraphicsView.h"
+
 #include <QScrollBar>
 
 SGraphicsView::SGraphicsView(int id) {
     m_isPanning = false;
     m_synchronizedView = nullptr;
     setRenderHint(QPainter::Antialiasing);
+    setMouseTracking(true);
 }
 
 void SGraphicsView::setSynchronizedView(SGraphicsView *view) {
@@ -27,9 +29,15 @@ void SGraphicsView::wheelEvent(QWheelEvent *event) {
 }
 
 void SGraphicsView::mousePressEvent(QMouseEvent *event) {
-    m_isPanning = true;
-    m_activePosition = event->pos();
-    setCursor(Qt::ClosedHandCursor);
+    if (event->button() == Qt::RightButton) {
+        m_isPanning = true;
+        m_activePosition = event->pos();
+        setCursor(Qt::ClosedHandCursor);
+        return;
+    }
+    if (event->button() == Qt::LeftButton) {
+        emit onPointerPressed();
+    }
 }
 
 void SGraphicsView::mouseMoveEvent(QMouseEvent *event) {
@@ -44,6 +52,9 @@ void SGraphicsView::mouseMoveEvent(QMouseEvent *event) {
             m_synchronizedView->horizontalScrollBar()->setValue((int) newX);
             m_synchronizedView->verticalScrollBar()->setValue((int) newY);
         }
+    } else {
+        const auto mapped = mapToScene(event->pos());
+        emit onPointerMoved(mapped.x(), mapped.y());
     }
 }
 

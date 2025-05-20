@@ -35,14 +35,14 @@ private:
 
 private:
     PathMatcher(const Path& inputPath, const std::shared_ptr<NetworkGraph>& graph);
-    const Path& computeClosestPath(double absoluteDistanceThreshold);
+    Path computeClosestPath(double absoluteDistanceThreshold);
     [[nodiscard]] Path flattenPathStack() const;
     void dfs();
     void filterEdgesOnAbsoluteDistance(double absoluteDistanceThreshold);
     void initializeLowerBoundEdgeDTWDistanceCostQueue();
 
 public:
-    static const Path& match(const Path& inputPath, const std::shared_ptr<NetworkGraph>& graph, double absoluteDistanceThreshold);
+    static Path match(const Path& inputPath, const std::shared_ptr<NetworkGraph>& graph, double absoluteDistanceThreshold);
 };
 
 

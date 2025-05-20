@@ -23,6 +23,14 @@ public:
         Downstream = 1
     };
 
+    enum FlowDirection {
+        Forward = 0,
+        Backward = 1,
+        LikelyForward = 2,
+        LikelyBackward = 3,
+        Unknown = 256
+    };
+
     /// Parent/Child relationship indicating the intersection point and the other node from a specific one.
     typedef class _ {
         Connection m_connection;
@@ -45,6 +53,8 @@ public:
         int m_depth;
         /// The reach associated with this node.
         std::shared_ptr<Reach> m_reach;
+        /// Flow direction of the reach.
+        FlowDirection m_flowDirection;
 
         /// Hidden constructor for creating a node. This constructor should only be called from the network.
         explicit Node(const std::shared_ptr<ReachNetwork>& network, const std::shared_ptr<Reach>& reach);
@@ -61,6 +71,17 @@ public:
         [[nodiscard]] std::shared_ptr<Parent> getDownstreamParent() const;
         /// Gets the child nodes of this node in the network.
         [[nodiscard]] std::vector<std::shared_ptr<Child>> getChildren() const;
+        void updateFlowDirection();
+
+    private:
+        void findReasonableFlowDirection();
+
+    public:
+        struct DepthComparer {
+            bool operator()(const std::shared_ptr<Node>& lhs, const std::shared_ptr<Node>& rhs) const {
+                return lhs->getDepth() < rhs->getDepth();
+            }
+        };
 
         friend class ReachNetwork;
     };
@@ -115,16 +136,15 @@ public:
     /// Gets the bounds of the network.
     [[nodiscard]] std::pair<Point, Point> getBounds() const;
     /// Gets all nodes in the network.
-    [[nodiscard]] decltype(auto) getNodes() const { return std::views::values(m_nodes); }
+    [[nodiscard]] decltype(auto) getNodes() const { return m_nodes; }
     /// Filter the nodes in the network based on a predicate function.
     /// @return A new ReachNetwork instance containing only the nodes and connections that satisfy the predicate.
     std::shared_ptr<ReachNetwork> filter(const std::function<bool(const std::shared_ptr<Node>&)>& predicate);
+    std::vector<Point> getReachPath(int reachIndex);
 
 public:
     /// Creates a new ReachNetwork instance.
     static std::shared_ptr<ReachNetwork> create();
 };
-
-
 
 #endif //REACHNETWORK_H

@@ -5,6 +5,8 @@
 #include <QMouseEvent>
 #include <QGraphicsView>
 
+#include "NetworkDisplayFrame.h"
+
 class SGraphicsView : public QGraphicsView {
 
     Q_OBJECT
@@ -25,6 +27,10 @@ protected:
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
+
+signals:
+    void onPointerMoved(double x, double y);
+    void onPointerPressed();
 };
 
 

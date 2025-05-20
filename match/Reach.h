@@ -97,11 +97,11 @@ public:
     /// Gets the back point of the reach.
     [[nodiscard]] IndexedPoint getBack() const { return m_intersectionPoints.back(); }
     /// Gets the bounds of the reach.
-    [[nodiscard]] std::pair<Point, Point> getBounds() const {
-        return std::make_pair(m_lowerBound, m_upperBound);
-    }
+    [[nodiscard]] std::pair<Point, Point> getBounds() const { return std::make_pair(m_lowerBound, m_upperBound); }
+    [[nodiscard]] int findIndexedPoint(int index) const;
 };
 
-
+typedef std::shared_ptr<Reach> ReachPtr;
+typedef const std::shared_ptr<Reach> ConstReachPtr;
 
 #endif //REACH_H

@@ -1,5 +1,6 @@
 #include "NetworkConverter.h"
 
+#include <cassert>
 #include <ranges>
 #include <unordered_set>
 #include <unordered_map>
@@ -48,6 +49,9 @@ std::shared_ptr<ReachNetwork> NetworkConverter::ng2rn(const std::shared_ptr<Netw
             }
         }
     }
+    for (auto &[_, node] : network->getNodes()) {
+        node->updateFlowDirection();
+    }
     return network;
 }
 
@@ -56,7 +60,7 @@ std::shared_ptr<NetworkGraph> NetworkConverter::rn2ng(const std::shared_ptr<Reac
     std::unordered_map<int, Point> vertices;
     std::unordered_map<int, int> verticesRemap;
     // Get all vertices from the reach network.
-    for (const auto & node : reachNetwork->getNodes()) {
+    for (const auto & [_, node] : reachNetwork->getNodes()) {
         vertices[node->getReach()->getFront().index] = node->getReach()->getFront().location;
         vertices[node->getReach()->getBack().index] = node->getReach()->getBack().location;
     }
@@ -66,7 +70,7 @@ std::shared_ptr<NetworkGraph> NetworkConverter::rn2ng(const std::shared_ptr<Reac
         verticesRemap[p.first] = remapId;
     }
     // Add edges to the network graph.
-    for (const auto &node : reachNetwork->getNodes()) {
+    for (const auto &[_, node] : reachNetwork->getNodes()) {
         auto reach = node->getReach();
         auto ips = reach->getIntersectionPoints();
         auto ipIndices = reach->getIpIndices();

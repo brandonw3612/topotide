@@ -9,7 +9,7 @@ PathMatcher::PathMatcher(const Path &inputPath, const std::shared_ptr<NetworkGra
     m_minDTWD = std::numeric_limits<double>::infinity();
 }
 
-const PathMatcher::Path &PathMatcher::computeClosestPath(double absoluteDistanceThreshold) {
+PathMatcher::Path PathMatcher::computeClosestPath(double absoluteDistanceThreshold) {
     m_minDTWD = std::numeric_limits<double>::infinity();
     m_bestPath.clear();
     m_ignoredEdges.clear();
@@ -159,7 +159,7 @@ PathMatcher::Path PathMatcher::flattenPathStack() const {
     return result;
 }
 
-const PathMatcher::Path & PathMatcher::match(const Path &inputPath, const std::shared_ptr<NetworkGraph> &graph, double absoluteDistanceThreshold) {
-    static PathMatcher matcher(inputPath, graph);
+PathMatcher::Path PathMatcher::match(const Path &inputPath, const std::shared_ptr<NetworkGraph> &graph, double absoluteDistanceThreshold) {
+    PathMatcher matcher(inputPath, graph);
     return matcher.computeClosestPath(absoluteDistanceThreshold);
 }
