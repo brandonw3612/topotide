@@ -44,7 +44,7 @@ class Point {
 		 * Returns the distance to some other point.
 		 * \param p The other point.
 		 */
-		double distanceTo(Point p);
+		double distanceTo(Point p) const;
 
 		/**
 		 * Returns whether this point is within the given bounds.

@@ -15,8 +15,10 @@ NetworkDisplayFrame::NetworkDisplayFrame(const QString &name, const std::shared_
 void NetworkDisplayFrame::matchReachPathFrom(const std::shared_ptr<NetworkDisplayFrame> &otherFrame, const std::shared_ptr<NetworkGraph>& filteredNetwork, double th) {
     if (otherFrame->m_reachPath.empty()) return;
     auto matchedPath = PathMatcher::match(otherFrame->m_reachPath, filteredNetwork, th);
-    std::cout << "Matched a path with len " << matchedPath.size() << std::endl;
+    auto matchedSegment = PathMatcher::matchSegment(otherFrame->m_reachPath, otherFrame->m_reachSegment, matchedPath);
+    std::cout << "Matched a path with len " << matchedPath.size() << " and the subsegment path with len " << matchedSegment.size() << std::endl;
     m_reachPath = matchedPath;
+    m_reachSegment = matchedSegment;
     emit onViewUpdated();
 }
 
@@ -31,10 +33,13 @@ void NetworkDisplayFrame::updatePointerLocation(double x, double y) {
 void NetworkDisplayFrame::highlightReachPath() {
     if (m_highlightedReachId != -1) {
         auto reachPath = m_reachNetwork->getReachPath(m_highlightedReachId);
+        auto reachSegment = m_reachNetwork->getNodes()[m_highlightedReachId]->getReach()->getPoints();
         m_reachPath = reachPath;
+        m_reachSegment = reachSegment;
         emit onViewUpdated();
     } else {
         m_reachPath.clear();
+        m_reachSegment.clear();
         emit onViewUpdated();
     }
 }
@@ -52,6 +57,8 @@ QGraphicsScene * NetworkDisplayFrame::getScene(int maxDepth, double minDelta) co
     scene->setBackgroundBrush(QBrush(Qt::black));
     auto reachPathPath = createPath(m_reachPath);
     scene->addPath(reachPathPath, QPen(QBrush(QColor(Qt::white)), 5), QBrush(Qt::transparent));
+    auto reachSegmentPath = createPath(m_reachSegment);
+    scene->addPath(reachSegmentPath, QPen(QBrush(QColor(Qt::darkGray)), 6), QBrush(Qt::transparent));
     for (const auto& [_, node]: m_reachNetwork->getNodes()) {
         auto depth = node->getDepth();
         if (depth > maxDepth || node->getReach()->getDelta() < minDelta) continue;

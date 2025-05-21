@@ -163,3 +163,72 @@ PathMatcher::Path PathMatcher::match(const Path &inputPath, const std::shared_pt
     PathMatcher matcher(inputPath, graph);
     return matcher.computeClosestPath(absoluteDistanceThreshold);
 }
+
+PathMatcher::Path PathMatcher::matchSegment(const Path &inputPath, const Path &inputReachSegment, const Path &matchedPath) {
+    if (inputPath.size() == 0 || inputReachSegment.size() == 0 || matchedPath.size() == 0) {
+        return Path();
+    }
+
+    int segmentStartIndex, segmentEndIndex;
+    for (int i = 0; i < inputPath.size(); i++) {
+        if (inputPath[i] == inputReachSegment[0]) {
+            segmentStartIndex = i;
+            break;
+        }
+    }
+    for (int i = inputPath.size() - 1; i >= 0; i--) {
+        if (inputPath[i] == inputReachSegment.back()) {
+            segmentEndIndex = i;
+            break;
+        }
+    }
+    if (segmentEndIndex < segmentStartIndex) std::swap(segmentStartIndex, segmentEndIndex);
+
+    std::vector<DTWRow> dp(inputPath.size(), DTWRow(matchedPath.size(), 0));
+    dp[0][0] = inputPath[0].distanceTo(matchedPath[0]);
+    for (int i = 1; i < inputPath.size(); i++) {
+        dp[i][0] = dp[i - 1][0] + inputPath[i].distanceTo(matchedPath[0]);
+    }
+    for (int j = 1; j < matchedPath.size(); j++) {
+        dp[0][j] = dp[0][j - 1] + inputPath[0].distanceTo(matchedPath[j]);
+    }
+    for (int i = 1; i < inputPath.size(); i++) {
+        for (int j = 1; j < matchedPath.size(); j++) {
+            dp[i][j] = std::min({dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]}) 
+                        + inputPath[i].distanceTo(inputPath[j]);
+        }
+    }
+
+    std::vector<std::pair<int, int>> matchedDTWIndexPairs;
+    std::pair<int, int> cur {inputPath.size() - 1, matchedPath.size() - 1};
+    while (cur.first != 0 && cur.second != 0) {
+        matchedDTWIndexPairs.push_back(cur);
+        int& i = cur.first;
+        int& j = cur.second;
+        if (dp[i - 1][j] <= dp[i][j - 1] && dp[i - 1][j] <= dp[i - 1][j - 1]) {
+            i--;
+        } else if (dp[i][j - 1] <= dp[i - 1][j] && dp[i][j - 1] <= dp[i - 1][j - 1]) {
+            j--;
+        } else {
+            i--;
+            j--;
+        }
+    }
+
+    while (cur.first >= 0 && cur.second >= 0) {
+        matchedDTWIndexPairs.push_back(cur);
+        if (cur.first) cur.first--;
+        else cur.second--;   
+    }
+
+    Path matchingSegment;
+    reverse(matchedDTWIndexPairs.begin(), matchedDTWIndexPairs.end());
+    
+    for (auto& indexPair : matchedDTWIndexPairs) {
+        if (indexPair.first >= segmentStartIndex && indexPair.first <= segmentEndIndex) {
+            matchingSegment.push_back(matchedPath[indexPair.second]);
+        }
+    }
+
+    return matchingSegment;
+}

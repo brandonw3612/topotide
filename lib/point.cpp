@@ -6,7 +6,7 @@ Point::Point() : x(0), y(0), h(0) {
 Point::Point(double x, double y, double h) : x(x), y(y), h(h) {
 }
 
-double Point::distanceTo(Point p) {
+double Point::distanceTo(Point p) const {
 	double dx = p.x - x;
 	double dy = p.y - y;
 	return sqrt(dx * dx + dy * dy);

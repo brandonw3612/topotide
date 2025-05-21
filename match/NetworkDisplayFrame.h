@@ -20,6 +20,7 @@ private:
     std::shared_ptr<ReachNetwork> m_reachNetwork;
     std::shared_ptr<PointSearchTree> m_pointSearchTree;
     std::vector<Point> m_reachPath;
+    std::vector<Point> m_reachSegment;
     int m_highlightedReachId;
 
 public:

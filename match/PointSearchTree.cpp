@@ -1,3 +1,6 @@
+#include <ranges>
+#include <algorithm>
+
 #include "PointSearchTree.h"
 
 std::shared_ptr<PointSearchTree::Node> PointSearchTree::Node::create(std::vector<PointData> &points, double gridLength,
