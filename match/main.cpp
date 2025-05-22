@@ -5,10 +5,13 @@
 #include "Context.h"
 #include "DualFrameViewer.h"
 #include "Frame.h"
+#include "MatchResultRenderer.h"
 #include "NetworkConverter.h"
 #include "utils/ParallelComputer.hpp"
 #include "PathFrame.h"
 #include "PathMatcher.h"
+#include "PrecomputedDisplayFrame.h"
+#include "PreComputedReachNetwork.h"
 
 struct ReachMapResult {
     std::vector<Point> reach;
@@ -57,63 +60,69 @@ int main(int argc, char *argv[]) {
         [=](const std::shared_ptr<ReachNetwork::Node> &node) {
             return node->getReach()->getDelta() >= 2;
         });
-    auto rnFiltered1968 = rn1968->filter(
-        [=](const std::shared_ptr<ReachNetwork::Node> &node) {
-            return node->getReach()->getDelta() >= 2;
-        });
-    auto ngFiltered1968 = NetworkConverter::rn2ng(rnFiltered1968);
-    std::set validNodes = {0};
-    for (const auto &[id, node]: rnFiltered1964->getNodes()) {
-        auto up = node->getUpstreamParent(), dp = node->getDownstreamParent();
-        if (up == nullptr && dp == nullptr) continue;
-        if (up != nullptr && !validNodes.contains(up->getNode()->getReach()->getIndex())) continue;
-        if (dp != nullptr && !validNodes.contains(dp->getNode()->getReach()->getIndex())) continue;
-        validNodes.insert(id);
-    }
-    std::map<int, std::future<ReachMapResult>> mappedPoints;
-    printTime();
-    ParallelComputer pc(8);
-    for (int nodeIndex: validNodes) {
-        auto matched = pc.run([=]() {
-            auto reachPath = rnFiltered1964->getReachPath(nodeIndex);
-            auto reachSegment = rnFiltered1964->getNodes()[nodeIndex]->getReach()->getPoints();
-            auto matchedPath = PathMatcher::match(reachPath, ngFiltered1968, 10000.0);
-            auto matchedSegment = PathMatcher::matchSegment(reachPath, reachSegment, matchedPath);
-            std::cout << "Matched reach " << nodeIndex <<
-                    " and the subsegment path with len " << matchedSegment.size() << std::endl;
-            ReachMapResult result;
-            result.reach = reachSegment;
-            result.reachPath = reachPath;
-            result.matchedSegment = matchedSegment;
-            result.matchedPath = matchedPath;
-            return result;
-        });
-        mappedPoints[nodeIndex] = std::move(matched);
-    }
-    pc.waitAll();
-    std::ofstream outFile("/Users/brandon/Desktop/matchedPaths.txt", std::ios::out);
-    outFile << validNodes.size() << std::endl;
-    for (int nodeIndex : validNodes) {
-        auto r = mappedPoints[nodeIndex].get();
-        outFile << nodeIndex << " " << r.reach.size() << " " << r.reachPath.size() << " " << r.matchedSegment.size() << " " << r.matchedPath.size() << std::endl;
-        for (const auto &p: r.reach) {
-            outFile << p.x << " " << p.y << " ";
-        }
-        outFile << std::endl;
-        for (const auto &p: r.reachPath) {
-            outFile << p.x << " " << p.y << " ";
-        }
-        outFile << std::endl;
-        for (const auto &p: r.matchedSegment) {
-            outFile << p.x << " " << p.y << " ";
-        }
-        outFile << std::endl;
-        for (const auto &p: r.matchedPath) {
-            outFile << p.x << " " << p.y << " ";
-        }
-        outFile << std::endl;
-    }
-    outFile.close();
-    printTime();
-    return 0;
+    // auto rnFiltered1968 = rn1968->filter(
+    //     [=](const std::shared_ptr<ReachNetwork::Node> &node) {
+    //         return node->getReach()->getDelta() >= 2;
+    //     });
+    // auto ngFiltered1968 = NetworkConverter::rn2ng(rnFiltered1968);
+    // std::set validNodes = {0};
+    // for (const auto &[id, node]: rnFiltered1964->getNodes()) {
+    //     auto up = node->getUpstreamParent(), dp = node->getDownstreamParent();
+    //     if (up == nullptr && dp == nullptr) continue;
+    //     if (up != nullptr && !validNodes.contains(up->getNode()->getReach()->getIndex())) continue;
+    //     if (dp != nullptr && !validNodes.contains(dp->getNode()->getReach()->getIndex())) continue;
+    //     validNodes.insert(id);
+    // }
+    // std::map<int, std::future<ReachMapResult>> mappedPoints;
+    // printTime();
+    // ParallelComputer pc(8);
+    // for (int nodeIndex: validNodes) {
+    //     auto matched = pc.run([=]() {
+    //         auto reachPath = rnFiltered1964->getReachPath(nodeIndex);
+    //         auto reachSegment = rnFiltered1964->getNodes()[nodeIndex]->getReach()->getPoints();
+    //         auto matchedPath = PathMatcher::match(reachPath, ngFiltered1968, 10000.0);
+    //         auto matchedSegment = PathMatcher::matchSegment(reachPath, reachSegment, matchedPath);
+    //         std::cout << "Matched reach " << nodeIndex <<
+    //                 " and the subsegment path with len " << matchedSegment.size() << std::endl;
+    //         ReachMapResult result;
+    //         result.reach = reachSegment;
+    //         result.reachPath = reachPath;
+    //         result.matchedSegment = matchedSegment;
+    //         result.matchedPath = matchedPath;
+    //         return result;
+    //     });
+    //     mappedPoints[nodeIndex] = std::move(matched);
+    // }
+    // pc.waitAll();
+    // std::ofstream outFile("/Users/brandon/Desktop/matchedPaths.txt", std::ios::out);
+    // outFile << validNodes.size() << std::endl;
+    // for (int nodeIndex : validNodes) {
+    //     auto r = mappedPoints[nodeIndex].get();
+    //     outFile << nodeIndex << " " << r.reach.size() << " " << r.reachPath.size() << " " << r.matchedSegment.size() << " " << r.matchedPath.size() << std::endl;
+    //     for (const auto &p: r.reach) {
+    //         outFile << p.x << " " << p.y << " ";
+    //     }
+    //     outFile << std::endl;
+    //     for (const auto &p: r.reachPath) {
+    //         outFile << p.x << " " << p.y << " ";
+    //     }
+    //     outFile << std::endl;
+    //     for (const auto &p: r.matchedSegment) {
+    //         outFile << p.x << " " << p.y << " ";
+    //     }
+    //     outFile << std::endl;
+    //     for (const auto &p: r.matchedPath) {
+    //         outFile << p.x << " " << p.y << " ";
+    //     }
+    //     outFile << std::endl;
+    // }
+    // outFile.close();
+    // printTime();
+    // return 0;
+
+    auto precomputed = PreComputedReachNetwork::createFrom(rnFiltered1964, "/Users/brandon/Desktop/matchedPaths.txt");
+    auto frame = std::make_shared<PrecomputedDisplayFrame>("", precomputed);
+    MatchResultRenderer renderer(frame);
+    renderer.show();
+    return app.exec();
 }

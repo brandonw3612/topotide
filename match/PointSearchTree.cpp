@@ -47,6 +47,17 @@ PointSearchTree::PointSearchTree(const std::shared_ptr<ReachNetwork> &network, i
     m_root = Node::create(points, SEARCH_GRID_LENGTH);
 }
 
+PointSearchTree::PointSearchTree(const std::shared_ptr<PreComputedReachNetwork> &network) {
+    std::vector<PointData> points;
+    for (const auto& id : network->getMappedReachIndices()) {
+        auto node = network->getNodes()[id];
+        for (auto point : node->getReach()->getPoints()) {
+            points.emplace_back(point.x, point.y, node->getReach()->getIndex());
+        }
+    }
+    m_root = Node::create(points, SEARCH_GRID_LENGTH);
+}
+
 int PointSearchTree::findReach(double x, double y) const {
     auto current = m_root;
     while (!current->m_isLeaf) {

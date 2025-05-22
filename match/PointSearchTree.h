@@ -5,6 +5,7 @@
 
 #include "point.h"
 #include "ReachNetwork.h"
+#include "PreComputedReachNetwork.h"
 
 #define SEARCH_GRID_LENGTH 8
 
@@ -39,6 +40,7 @@ private:
 
 public:
     explicit PointSearchTree(const std::shared_ptr<ReachNetwork>& network, int maxDepth, double minDelta);
+    explicit PointSearchTree(const std::shared_ptr<PreComputedReachNetwork>& network);
     int findReach(double x, double y) const;
 };
 

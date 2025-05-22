@@ -3,15 +3,17 @@
 
 #include <map>
 #include <memory>
-#include <ranges>
 #include <vector>
 #include <functional>
 
 #include "Reach.h"
 
+class PreComputedReachNetwork;
+
 /// A network of reaches, connected via a hierarchical structure.
 class ReachNetwork {
 public:
+    virtual ~ReachNetwork() = default;
     class Node;
 
 private:
@@ -84,6 +86,7 @@ public:
         };
 
         friend class ReachNetwork;
+        friend class PreComputedReachNetwork;
     };
 
 
@@ -140,11 +143,13 @@ public:
     /// Filter the nodes in the network based on a predicate function.
     /// @return A new ReachNetwork instance containing only the nodes and connections that satisfy the predicate.
     std::shared_ptr<ReachNetwork> filter(const std::function<bool(const std::shared_ptr<Node>&)>& predicate);
-    std::vector<Point> getReachPath(int reachIndex);
+    virtual std::vector<Point> getReachPath(int reachIndex);
 
 public:
     /// Creates a new ReachNetwork instance.
     static std::shared_ptr<ReachNetwork> create();
+
+    friend class PreComputedReachNetwork;
 };
 
 #endif //REACHNETWORK_H
