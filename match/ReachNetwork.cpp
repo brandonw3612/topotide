@@ -232,6 +232,7 @@ void ReachNetwork::Node::findReasonableFlowDirection() {
 
 std::shared_ptr<ReachNetwork> ReachNetwork::filter(const std::function<bool(const std::shared_ptr<Node> &)>& predicate) {
     auto filteredNetwork = std::shared_ptr<ReachNetwork>(new ReachNetwork());
+    filteredNetwork->m_self = filteredNetwork;
     for (const auto &node: m_nodes | std::views::values) {
         if (predicate(node)) {
             filteredNetwork->createNode(node->getReach());
@@ -248,6 +249,9 @@ std::shared_ptr<ReachNetwork> ReachNetwork::filter(const std::function<bool(cons
                 filteredNetwork->m_nodes.contains(edge->getChildIndex())) {
             filteredNetwork->addEdge(Downstream, edge->getParentIndex(), edge->getChildIndex(), edge->getIntersection());
         }
+    }
+    for (const auto &[_, node] : filteredNetwork->m_nodes) {
+        node->updateFlowDirection();
     }
     return filteredNetwork;
 }
