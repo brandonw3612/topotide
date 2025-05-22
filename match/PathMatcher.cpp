@@ -122,7 +122,7 @@ void PathMatcher::filterEdgesOnAbsoluteDistance(double absoluteDistanceThreshold
         count++;
         m_ignoredEdges.insert(i);
     }
-    std::cout << "Edges filtered based on absolute distance: " << count << std::endl;
+    // std::cout << "Edges filtered based on absolute distance: " << count << std::endl;
 }
 
 void PathMatcher::initializeLowerBoundEdgeDTWDistanceCostQueue() {
