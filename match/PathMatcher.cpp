@@ -195,7 +195,7 @@ PathMatcher::Path PathMatcher::matchSegment(const Path &inputPath, const Path &i
     for (int i = 1; i < inputPath.size(); i++) {
         for (int j = 1; j < matchedPath.size(); j++) {
             dp[i][j] = std::min({dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]}) 
-                        + inputPath[i].distanceTo(inputPath[j]);
+                        + inputPath[i].distanceTo(matchedPath[j]);
         }
     }
 
