@@ -3,6 +3,8 @@
 
 #include "PathMatcher.h"
 
+#include "utils/VectorUtils.hpp"
+
 PathMatcher::PathMatcher(const Path &inputPath, const std::shared_ptr<NetworkGraph> &graph) {
     m_inputPath = inputPath;
     m_graph = graph;
@@ -164,25 +166,18 @@ PathMatcher::Path PathMatcher::match(const Path &inputPath, const std::shared_pt
     return matcher.computeClosestPath(absoluteDistanceThreshold);
 }
 
-PathMatcher::Path PathMatcher::matchSegment(const Path &inputPath, const Path &inputReachSegment, const Path &matchedPath) {
+std::pair<int, int> PathMatcher::matchSegment(const Path &inputPath, const Path &inputReachSegment, const Path &matchedPath) {
     if (inputPath.size() == 0 || inputReachSegment.size() == 0 || matchedPath.size() == 0) {
-        return Path();
+        return std::make_pair(-1, -1);
     }
 
-    int segmentStartIndex, segmentEndIndex;
-    for (int i = 0; i < inputPath.size(); i++) {
-        if (inputPath[i] == inputReachSegment[0]) {
-            segmentStartIndex = i;
-            break;
-        }
+    int segmentStartIndex = VectorUtils::firstIndexOf(inputPath, inputReachSegment[0]);
+    int segmentEndIndex = VectorUtils::lastIndexOf(inputPath, inputReachSegment.back());
+
+
+    if (segmentEndIndex < segmentStartIndex) {
+        std::swap(segmentStartIndex, segmentEndIndex);
     }
-    for (int i = inputPath.size() - 1; i >= 0; i--) {
-        if (inputPath[i] == inputReachSegment.back()) {
-            segmentEndIndex = i;
-            break;
-        }
-    }
-    if (segmentEndIndex < segmentStartIndex) std::swap(segmentStartIndex, segmentEndIndex);
 
     std::vector<DTWRow> dp(inputPath.size(), DTWRow(matchedPath.size(), 0));
     dp[0][0] = inputPath[0].distanceTo(matchedPath[0]);
@@ -223,12 +218,18 @@ PathMatcher::Path PathMatcher::matchSegment(const Path &inputPath, const Path &i
 
     Path matchingSegment;
     reverse(matchedDTWIndexPairs.begin(), matchedDTWIndexPairs.end());
-    
-    for (auto& indexPair : matchedDTWIndexPairs) {
-        if (indexPair.first >= segmentStartIndex && indexPair.first <= segmentEndIndex) {
-            matchingSegment.push_back(matchedPath[indexPair.second]);
-        }
-    }
 
-    return matchingSegment;
+    std::function filter = [&](const std::pair<int, int>& indexPair) {
+        return indexPair.first >= segmentStartIndex && indexPair.first <= segmentEndIndex;
+    };
+    return std::make_pair(VectorUtils::first(matchedDTWIndexPairs, filter).second,
+                          VectorUtils::last(matchedDTWIndexPairs, filter).second);
+
+    // for (auto& indexPair : matchedDTWIndexPairs) {
+    //     if (indexPair.first >= segmentStartIndex && indexPair.first <= segmentEndIndex) {
+    //         matchingSegment.push_back(matchedPath[indexPair.second]);
+    //     }
+    // }
+    //
+    // return matchingSegment;
 }

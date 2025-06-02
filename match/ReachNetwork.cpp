@@ -303,5 +303,8 @@ std::vector<Point> ReachNetwork::getReachPath(int reachIndex) {
         target = tp->getNode();
         tp = getTargetParent(target);
     }
+    if (node->m_flowDirection % 2 != 0) {
+        std::ranges::reverse(v);
+    }
     return v;
 }

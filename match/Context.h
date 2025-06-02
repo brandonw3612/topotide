@@ -4,10 +4,12 @@
 #include <memory>
 #include <vector>
 
+#include "MappingViewer.h"
 #include "ProgressReporter.h"
 #include "RiverData.h"
 #include "ReachNetwork.h"
 #include "NetworkDisplayFrame.h"
+#include "ReachMapResult.h"
 
 
 class Context : QObject {
@@ -29,9 +31,13 @@ public:
     void openBoundary(const QString& fileName);
     void computeNetworkGraph();
     void buildAbstractionForAllFrames();
+    void mapAllFrames(std::string outputFilePrefix, double sourceDeltaThreshold = 20.0, double targetDeltaThreshold = 2.0);
+    MappingViewer* createMappingViewer(std::string resultPrefix, double sourceDeltaThreshold = 20.0, double targetDeltaThreshold = 2.0);
 
 private:
     static std::shared_ptr<RiverFrame> loadFrame(const QString& file_name, Units& units);
+    static std::map<int, ReachMapResult> mapNetworks(const std::shared_ptr<ReachNetwork>& network1,
+                            const std::shared_ptr<ReachNetwork>& network2);
 };
 
 

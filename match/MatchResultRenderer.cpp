@@ -2,11 +2,7 @@
 
 #include <QVBoxLayout>
 
-MatchResultRenderer::MatchResultRenderer(const std::shared_ptr<PrecomputedDisplayFrame> &frame) {
-    m_frame = frame;
-
-    setWindowTitle("Map Result Viewer");
-
+MatchResultRenderer::MatchResultRenderer() {
     auto rootLayout = new QVBoxLayout;
     m_topGraphicsView = new SGraphicsView(0);
     m_bottomGraphicsView = new SGraphicsView(1);
@@ -16,10 +12,23 @@ MatchResultRenderer::MatchResultRenderer(const std::shared_ptr<PrecomputedDispla
     m_topGraphicsView->setSynchronizedView(m_bottomGraphicsView);
     m_bottomGraphicsView->setSynchronizedView(m_topGraphicsView);
 
+    this->setLayout(rootLayout);
+}
+
+void MatchResultRenderer::setFrame(const std::shared_ptr<PrecomputedDisplayFrame> &frame) {
+    if (m_frame == frame) {
+        return; // No change
+    }
+
+    if (m_frame != nullptr) {
+        disconnect(m_topGraphicsView, &SGraphicsView::onPointerMoved, m_frame.get(), &PrecomputedDisplayFrame::updatePointerLocation);
+        disconnect(m_frame.get(), &PrecomputedDisplayFrame::onViewUpdated, this, &MatchResultRenderer::refreshViews);
+    }
+
+    m_frame = frame;
+
     connect(m_topGraphicsView, &SGraphicsView::onPointerMoved, m_frame.get(), &PrecomputedDisplayFrame::updatePointerLocation);
     connect(m_frame.get(), &PrecomputedDisplayFrame::onViewUpdated, this, &MatchResultRenderer::refreshViews);
-
-    this->setLayout(rootLayout);
 
     refreshViews();
 }

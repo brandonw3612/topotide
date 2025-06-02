@@ -15,7 +15,8 @@ private:
     SGraphicsView *m_topGraphicsView, *m_bottomGraphicsView;
 
 public:
-    MatchResultRenderer(const std::shared_ptr<PrecomputedDisplayFrame>& frame);
+    MatchResultRenderer();
+    void setFrame(const std::shared_ptr<PrecomputedDisplayFrame>& frame);
 
 private:
     void refreshViews();

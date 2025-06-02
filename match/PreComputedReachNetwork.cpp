@@ -16,7 +16,8 @@ std::vector<Point> PreComputedReachNetwork::getReachPath(int reachIndex) {
 }
 
 std::vector<Point> PreComputedReachNetwork::getMatchedSegment(int reachIndex) {
-    return m_precomputed[reachIndex].matchedSegment;
+    // return m_precomputed[reachIndex].matchedSegment;
+    return m_precomputed[reachIndex].fixedSegment;
 }
 
 std::vector<Point> PreComputedReachNetwork::getMatchedPath(int reachIndex) {
@@ -43,14 +44,17 @@ std::shared_ptr<PreComputedReachNetwork> PreComputedReachNetwork::createFrom(
     int numberOfNodes;
     in >> numberOfNodes;
     while (numberOfNodes--) {
-        int nodeIndex, reachSize, reachPathSize, matchedSegmentSize, matchedPathSize;
-        in >> nodeIndex >> reachSize >> reachPathSize >> matchedSegmentSize >> matchedPathSize;
+        int nodeIndex, reachSize, reachPathSize, matchedPathSize;
+        in >> nodeIndex >> reachSize >> reachPathSize >> matchedPathSize;
         Precomputed p;
         p.nodeIndex = nodeIndex;
         readPoints(in, reachSize);
         p.reachPath = readPoints(in, reachPathSize);
-        p.matchedSegment = readPoints(in, matchedSegmentSize);
         p.matchedPath = readPoints(in, matchedPathSize);
+        int matchStart, matchEnd, fixedStart, fixedEnd;
+        in >> matchStart >> matchEnd >> fixedStart >> fixedEnd;
+        p.matchedSegment = std::vector<Point>(p.matchedPath.begin() + matchStart, p.matchedPath.begin() + matchEnd + 1);
+        p.fixedSegment = std::vector<Point>(p.matchedPath.begin() + fixedStart, p.matchedPath.begin() + fixedEnd + 1);
         network->m_precomputed[nodeIndex] = p;
     }
     return network;

@@ -1,19 +1,25 @@
 #include "Context.h"
+
 #include "boundaryreader.h"
 #include "GraphComputer.h"
 
 #include <iostream>
 #include <QFileInfo>
 
+#include "MappingViewer.h"
 #include "io/esrigridreader.h"
 #include "io/gdalreader.h"
 #include "io/textfilereader.h"
 
 #include "NetworkConverter.h"
 #include "NetworkGraphEdgeConnector.h"
-#include "ReachNetworkDisplayFrame.h"
+#include "PathMatcher.h"
+#include "PrecomputedDisplayFrame.h"
+#include "ReachMapResult.h"
+#include "utils/ParallelComputer.hpp"
+#include "utils/VectorUtils.hpp"
 
-void Context::openFrames(QStringList& fileNames) {
+void Context::openFrames(QStringList &fileNames) {
     // Not reachable in CLI
     // if (m_computationRunning) {
     //     QMessageBox msgBox;
@@ -31,7 +37,7 @@ void Context::openFrames(QStringList& fileNames) {
 
     std::shared_ptr<RiverData> riverData;
     Units units;
-    for (const QString& fileName : fileNames) {
+    for (const QString &fileName: fileNames) {
         std::shared_ptr<RiverFrame> frame = loadFrame(fileName, units);
         if (!frame) {
             break;
@@ -40,10 +46,10 @@ void Context::openFrames(QStringList& fileNames) {
             if (frame->m_heightMap.width() != riverData->width() ||
                 frame->m_heightMap.height() != riverData->height()) {
                 return;
-                }
+            }
         } else {
             riverData =
-                std::make_shared<RiverData>(frame->m_heightMap.width(), frame->m_heightMap.height(), units);
+                    std::make_shared<RiverData>(frame->m_heightMap.width(), frame->m_heightMap.height(), units);
         }
         riverData->addFrame(frame);
     }
@@ -72,11 +78,11 @@ void Context::openFrames(QStringList& fileNames) {
         std::cout << "Opened river \"" << fileNames[0].toStdString() << "\"" << std::endl << std::endl;
     } else {
         std::cout << QString("Opened river containing %1 frames").arg(fileNames.length()).toStdString()
-            << std::endl;
+                << std::endl;
     }
 }
 
-std::shared_ptr<RiverFrame> Context::loadFrame(const QString& fileName, Units& units) {
+std::shared_ptr<RiverFrame> Context::loadFrame(const QString &fileName, Units &units) {
     HeightMap heightMap;
     QString error = "[no error given]";
     if (fileName.endsWith(".txt")) {
@@ -100,17 +106,17 @@ std::shared_ptr<RiverFrame> Context::loadFrame(const QString& fileName, Units& u
         //                     "following error:\n    " + error);
         // msgBox.exec();
         std::cerr << "Cannot open river: "
-                  << QString("The river %1 cannot be opened.").arg(fileName).toStdString() << std::endl
-                  << "This file does not seem to be an image file or a valid text file containing elevation data."
-                  << std::endl << "Reading the text file failed due to the following error:" << std::endl
-                  << "\t" << error.toStdString() << std::endl << std::endl;
+                << QString("The river %1 cannot be opened.").arg(fileName).toStdString() << std::endl
+                << "This file does not seem to be an image file or a valid text file containing elevation data."
+                << std::endl << "Reading the text file failed due to the following error:" << std::endl
+                << "\t" << error.toStdString() << std::endl << std::endl;
         return nullptr;
     }
 
     return std::make_shared<RiverFrame>(fileName, heightMap);
 }
 
-void Context::openBoundary(const QString& fileName) {
+void Context::openBoundary(const QString &fileName) {
     // QString fileName = QFileDialog::getOpenFileName(
     //             this,
     //             "Open river boundary",
@@ -135,7 +141,7 @@ void Context::openBoundary(const QString& fileName) {
 
     QString error = "";
     Boundary boundary =
-        BoundaryReader::readBoundary(fileName, m_riverData->width(), m_riverData->height(), error);
+            BoundaryReader::readBoundary(fileName, m_riverData->width(), m_riverData->height(), error);
 
     if (error != "") {
         // something went wrong
@@ -150,10 +156,10 @@ void Context::openBoundary(const QString& fileName) {
         //                        "following error:\n    " + error);
         // msgBox.exec();
         std::cerr << "Cannot open boundary: "
-                  << QString("The river boundary %1 cannot be opened.").arg(fileName).toStdString() << std::endl
-                  << "This file does not seem to be a valid text file containing a river boundary." << std::endl
-                  << "Reading the text file failed due to the following error:" << std::endl
-                  << "\t" << error.toStdString() << std::endl << std::endl;
+                << QString("The river boundary %1 cannot be opened.").arg(fileName).toStdString() << std::endl
+                << "This file does not seem to be a valid text file containing a river boundary." << std::endl
+                << "Reading the text file failed due to the following error:" << std::endl
+                << "\t" << error.toStdString() << std::endl << std::endl;
         return;
     }
 
@@ -165,30 +171,30 @@ void Context::openBoundary(const QString& fileName) {
 }
 
 void Context::computeNetworkGraph() {
-	if (!m_riverData->boundaryRasterized().isValid()) {
-		// QMessageBox msgBox;
-		// msgBox.setIcon(QMessageBox::Critical);
-		// msgBox.setWindowTitle("Boundary invalid");
-		// msgBox.setText("<qt>The computation cannot run as the boundary is invalid.");
-		// msgBox.setInformativeText("<qt>A valid boundary does not self-intersect and does not visit "
-		//                           "any points more than once. "
-		//                           "Edit the boundary and try again.");
-		// msgBox.exec();
-		std::cerr << "Boundary invalid: The computation cannot run as the boundary is invalid." << std::endl
-				  << "A valid boundary does not self-intersect and does not visit any points more than once. "
-				  << "Edit the boundary and try again." << std::endl << std::endl;
-		return;
-	}
-	// progressDock->reset();
-	// m_computationRunning = true;
-	// m_computationNeeded = false;
+    if (!m_riverData->boundaryRasterized().isValid()) {
+        // QMessageBox msgBox;
+        // msgBox.setIcon(QMessageBox::Critical);
+        // msgBox.setWindowTitle("Boundary invalid");
+        // msgBox.setText("<qt>The computation cannot run as the boundary is invalid.");
+        // msgBox.setInformativeText("<qt>A valid boundary does not self-intersect and does not visit "
+        //                           "any points more than once. "
+        //                           "Edit the boundary and try again.");
+        // msgBox.exec();
+        std::cerr << "Boundary invalid: The computation cannot run as the boundary is invalid." << std::endl
+                << "A valid boundary does not self-intersect and does not visit any points more than once. "
+                << "Edit the boundary and try again." << std::endl << std::endl;
+        return;
+    }
+    // progressDock->reset();
+    // m_computationRunning = true;
+    // m_computationNeeded = false;
 
-	// activeFrame()->m_inputGraph = nullptr;
-	// activeFrame()->m_inputDcel = nullptr;
-	// activeFrame()->m_msComplex = nullptr;
-	// activeFrame()->m_networkGraph = nullptr;
-	// map->update();
-	// updateActions();
+    // activeFrame()->m_inputGraph = nullptr;
+    // activeFrame()->m_inputDcel = nullptr;
+    // activeFrame()->m_msComplex = nullptr;
+    // activeFrame()->m_networkGraph = nullptr;
+    // map->update();
+    // updateActions();
 
     for (int i = 0; i < m_riverData->frameCount(); i++) {
         auto frame = m_riverData->getFrame(i);
@@ -207,4 +213,120 @@ void Context::buildAbstractionForAllFrames() {
         auto rn = NetworkConverter::ng2rn(frame->m_networkGraph);
         m_frames.push_back(std::make_shared<NetworkDisplayFrame>(fileInfo.baseName(), rn));
     }
+}
+
+std::map<int, ReachMapResult> Context::mapNetworks(const std::shared_ptr<ReachNetwork> &n1,
+    const std::shared_ptr<ReachNetwork> &n2) {
+    auto ng2 = NetworkConverter::rn2ng(n2);
+    int offset = n1->getNodes().begin()->first;
+    std::set validNodes = { n1->getNodes().begin()->first };
+    for (const auto &[id, node]: n1->getNodes()) {
+        auto up = node->getUpstreamParent(), dp = node->getDownstreamParent();
+        if (up == nullptr && dp == nullptr) continue;
+        if (up != nullptr && !validNodes.contains(up->getNode()->getReach()->getIndex())) continue;
+        if (dp != nullptr && !validNodes.contains(dp->getNode()->getReach()->getIndex())) continue;
+        validNodes.insert(id);
+    }
+
+    std::map<int, std::future<ReachMapResult>> mappedPoints;
+    ParallelComputer pc(8);
+    for (int nodeIndex: validNodes) {
+        auto matched = pc.run([=] {
+            auto reachPath = n1->getReachPath(nodeIndex);
+            auto reachSegment = n1->getNodes()[nodeIndex]->getReach()->getPoints();
+            auto matchedPath = PathMatcher::match(reachPath, ng2, 10000.0);
+            auto matchedSegmentIndex = PathMatcher::matchSegment(reachPath, reachSegment, matchedPath);
+            std::cout << "[" << nodeIndex - offset << "/" << validNodes.size() << "] Matched reach " << nodeIndex <<
+                    " and the subsegment path with len " << matchedSegmentIndex.second - matchedSegmentIndex.first + 1 << std::endl;
+            ReachMapResult result;
+            result.reach = reachSegment;
+            result.reachPath = reachPath;
+            result.matchedSegmentRange = matchedSegmentIndex;
+            result.matchedPath = matchedPath;
+            return result;
+        });
+        mappedPoints[nodeIndex] = std::move(matched);
+    }
+    pc.waitAll();
+    std::map<int, ReachMapResult> results;
+    for (auto &[nodeIndex, future]: mappedPoints) {
+        auto result = future.get();
+        auto node = n1->getNodes()[nodeIndex];
+        auto up = node->getUpstreamParent(), dp = node->getDownstreamParent();
+        auto [start, end] = result.matchedSegmentRange;
+        if (up != nullptr && results.contains(up->getNode()->getReach()->getIndex())) {
+            auto upResult = results[up->getNode()->getReach()->getIndex()];
+            while (start >= 0 && VectorUtils::firstIndexOf(upResult.matchedPath, result.matchedPath[start]) == -1) {
+                start--;
+            }
+            if (start < 0) continue;
+        }
+        if (dp != nullptr && results.contains(dp->getNode()->getReach()->getIndex())) {
+            auto dpResult = results[dp->getNode()->getReach()->getIndex()];
+            while (end < result.matchedPath.size() && VectorUtils::lastIndexOf(dpResult.matchedPath, result.matchedPath[end]) == -1) {
+                end++;
+            }
+            if (end >= result.matchedPath.size()) continue;
+        }
+        result.fixedSegmentRange = std::make_pair(start, end);
+        results[nodeIndex] = result;
+    }
+    return results;
+}
+
+void Context::mapAllFrames(std::string outputFilePrefix, double sourceDeltaThreshold, double targetDeltaThreshold) {
+    for (int i = 0; i < m_frames.size() - 1; i++) {
+        std::cout << "Mapping frame " << i << " to frame " << i + 1 << std::endl;
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+        std::cout << std::endl << std::ctime(&now_time) << std::endl;
+        auto n1 = m_frames[i]->getNetwork()->filter([sourceDeltaThreshold](const auto &node) {
+            return node->getReach()->getDelta() >= sourceDeltaThreshold;
+        });
+        auto n2 = m_frames[i + 1]->getNetwork()->filter([targetDeltaThreshold](const auto &node) {
+            return node->getReach()->getDelta() >= targetDeltaThreshold;
+        });
+        auto results = mapNetworks(n1, n2);
+        std::ofstream outFile(outputFilePrefix + std::to_string(i) + "_mapped.txt", std::ios::out);
+        outFile << results.size() << std::endl;
+        for (const auto& [nodeIndex, _] : results) {
+            auto r = results[nodeIndex];
+            outFile << nodeIndex << " " << r.reach.size() << " " << r.reachPath.size() << " " << r.matchedPath.size() << std::endl;
+            for (const auto &p: r.reach) {
+                outFile << p.x << " " << p.y << " ";
+            }
+            outFile << std::endl;
+            for (const auto &p: r.reachPath) {
+                outFile << p.x << " " << p.y << " ";
+            }
+            outFile << std::endl;
+            for (const auto &p: r.matchedPath) {
+                outFile << p.x << " " << p.y << " ";
+            }
+            outFile << std::endl;
+            outFile << r.matchedSegmentRange.first << " " << r.matchedSegmentRange.second << " ";
+            outFile << r.fixedSegmentRange.first << " " << r.fixedSegmentRange.second << std::endl;
+        }
+        outFile.close();
+        now = std::chrono::system_clock::now();
+        now_time = std::chrono::system_clock::to_time_t(now);
+        std::cout << std::endl << std::ctime(&now_time) << std::endl;
+    }
+}
+
+MappingViewer* Context::createMappingViewer(std::string resultPrefix, double sourceDeltaThreshold, double targetDeltaThreshold) {
+    std::vector<std::shared_ptr<PrecomputedDisplayFrame>> frames;
+    for (int i = 0; i < m_frames.size() - 1; i++) {
+        auto n1 = m_frames[i]->getNetwork()->filter([sourceDeltaThreshold](const auto &node) {
+            return node->getReach()->getDelta() >= sourceDeltaThreshold;
+        });
+        std::cout << "Loading precomputer results for " << m_frames[i]->getName().toStdString() << std::endl;
+        auto precomputed = PreComputedReachNetwork::createFrom(n1, resultPrefix + std::to_string(i) + "_mapped.txt");
+        auto frame = std::make_shared<PrecomputedDisplayFrame>(
+            m_frames[i]->getName() + "/" + m_frames[i + 1]->getName(),
+            precomputed
+        );
+        frames.push_back(frame);
+    }
+    return new MappingViewer(frames);
 }

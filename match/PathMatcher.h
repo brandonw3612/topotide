@@ -43,7 +43,7 @@ private:
 
 public:
     static Path match(const Path& inputPath, const std::shared_ptr<NetworkGraph>& graph, double absoluteDistanceThreshold);
-    static Path matchSegment(const Path& inputPath, const Path& inputReachSegment, const Path& matchedPath);
+    static std::pair<int, int> matchSegment(const Path& inputPath, const Path& inputReachSegment, const Path& matchedPath);
 };
 
 
