@@ -4,6 +4,7 @@
 #include "GraphComputer.h"
 
 #include <iostream>
+#include <set>
 #include <QFileInfo>
 
 #include "MappingViewer.h"
