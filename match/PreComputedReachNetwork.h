@@ -10,7 +10,6 @@ private:
     struct Precomputed {
         int nodeIndex;
         std::vector<Point> reachPath;
-        std::vector<Point> matchedSegment;
         std::vector<Point> fixedSegment;
         std::vector<Point> matchedPath;
     };

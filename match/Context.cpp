@@ -222,10 +222,6 @@ std::map<int, ReachMapResult> Context::mapNetworks(const std::shared_ptr<ReachNe
     int offset = n1->getNodes().begin()->first;
     std::set validNodes = { n1->getNodes().begin()->first };
     for (const auto &[id, node]: n1->getNodes()) {
-        auto up = node->getUpstreamParent(), dp = node->getDownstreamParent();
-        if (up == nullptr && dp == nullptr) continue;
-        if (up != nullptr && !validNodes.contains(up->getNode()->getReach()->getIndex())) continue;
-        if (dp != nullptr && !validNodes.contains(dp->getNode()->getReach()->getIndex())) continue;
         validNodes.insert(id);
     }
 
@@ -235,14 +231,15 @@ std::map<int, ReachMapResult> Context::mapNetworks(const std::shared_ptr<ReachNe
         auto matched = pc.run([=] {
             auto reachPath = n1->getReachPath(nodeIndex);
             auto reachSegment = n1->getNodes()[nodeIndex]->getReach()->getPoints();
-            auto matchedPath = PathMatcher::match(reachPath, ng2, 10000.0);
-            auto matchedSegmentIndex = PathMatcher::matchSegment(reachPath, reachSegment, matchedPath);
+            auto matchedPathResult = PathMatcher::match(reachPath, ng2, 10000.0);
+            auto matchedPath = matchedPathResult.path;
+            auto vertexConnectedSegment = PathMatcher::matchVertexConnectedSegment(reachPath, reachSegment, matchedPath, matchedPathResult.reachVertexIndices);
             std::cout << "[" << nodeIndex - offset << "/" << validNodes.size() << "] Matched reach " << nodeIndex <<
-                    " and the subsegment path with len " << matchedSegmentIndex.second - matchedSegmentIndex.first + 1 << std::endl;
+                    " and the subsegment path with len " << vertexConnectedSegment.size() << std::endl;
             ReachMapResult result;
             result.reach = reachSegment;
             result.reachPath = reachPath;
-            result.matchedSegmentRange = matchedSegmentIndex;
+            result.vertexConnectedMatchedSegment = vertexConnectedSegment;
             result.matchedPath = matchedPath;
             return result;
         });
@@ -252,24 +249,6 @@ std::map<int, ReachMapResult> Context::mapNetworks(const std::shared_ptr<ReachNe
     std::map<int, ReachMapResult> results;
     for (auto &[nodeIndex, future]: mappedPoints) {
         auto result = future.get();
-        auto node = n1->getNodes()[nodeIndex];
-        auto up = node->getUpstreamParent(), dp = node->getDownstreamParent();
-        auto [start, end] = result.matchedSegmentRange;
-        if (up != nullptr && results.contains(up->getNode()->getReach()->getIndex())) {
-            auto upResult = results[up->getNode()->getReach()->getIndex()];
-            while (start >= 0 && VectorUtils::firstIndexOf(upResult.matchedPath, result.matchedPath[start]) == -1) {
-                start--;
-            }
-            if (start < 0) continue;
-        }
-        if (dp != nullptr && results.contains(dp->getNode()->getReach()->getIndex())) {
-            auto dpResult = results[dp->getNode()->getReach()->getIndex()];
-            while (end < result.matchedPath.size() && VectorUtils::lastIndexOf(dpResult.matchedPath, result.matchedPath[end]) == -1) {
-                end++;
-            }
-            if (end >= result.matchedPath.size()) continue;
-        }
-        result.fixedSegmentRange = std::make_pair(start, end);
         results[nodeIndex] = result;
     }
     return results;
@@ -292,7 +271,7 @@ void Context::mapAllFrames(std::string outputFilePrefix, double sourceDeltaThres
         outFile << results.size() << std::endl;
         for (const auto& [nodeIndex, _] : results) {
             auto r = results[nodeIndex];
-            outFile << nodeIndex << " " << r.reach.size() << " " << r.reachPath.size() << " " << r.matchedPath.size() << std::endl;
+            outFile << nodeIndex << " " << r.reach.size() << " " << r.reachPath.size() << " " << r.matchedPath.size() << " " << r.vertexConnectedMatchedSegment.size() << std::endl;
             for (const auto &p: r.reach) {
                 outFile << p.x << " " << p.y << " ";
             }
@@ -305,8 +284,10 @@ void Context::mapAllFrames(std::string outputFilePrefix, double sourceDeltaThres
                 outFile << p.x << " " << p.y << " ";
             }
             outFile << std::endl;
-            outFile << r.matchedSegmentRange.first << " " << r.matchedSegmentRange.second << " ";
-            outFile << r.fixedSegmentRange.first << " " << r.fixedSegmentRange.second << std::endl;
+            for (const auto& p : r.vertexConnectedMatchedSegment) {
+                outFile << p.x << " " << p.y << " ";
+            }
+            outFile << std::endl;
         }
         outFile.close();
         now = std::chrono::system_clock::now();

@@ -11,7 +11,7 @@ PathMatcher::PathMatcher(const Path &inputPath, const std::shared_ptr<NetworkGra
     m_minDTWD = std::numeric_limits<double>::infinity();
 }
 
-PathMatcher::Path PathMatcher::computeClosestPath(double absoluteDistanceThreshold) {
+PathMatcher::PathMatcherResult PathMatcher::computeClosestPath(double absoluteDistanceThreshold) {
     m_minDTWD = std::numeric_limits<double>::infinity();
     m_bestPath.clear();
     m_ignoredEdges.clear();
@@ -45,7 +45,7 @@ PathMatcher::Path PathMatcher::computeClosestPath(double absoluteDistanceThresho
         dfs();
     }
 
-    return m_bestPath;
+    return {m_bestPath, m_bestPathReachVertexIndices};
 }
 
 void PathMatcher::dfs() {
@@ -83,6 +83,7 @@ void PathMatcher::dfs() {
         if (finalDTW < m_minDTWD) {
             m_minDTWD = finalDTW;
             m_bestPath = flattenPathStack();
+            m_bestPathReachVertexIndices = flattenPathStackReachVertexIndices();
             // Filter out edges that can never be included
             while (m_lowerBoundEdgeDTWDistanceCostQueue.size() && m_lowerBoundEdgeDTWDistanceCostQueue.top().first > m_minDTWD) {
                 auto& p = m_lowerBoundEdgeDTWDistanceCostQueue.top();
@@ -161,14 +162,51 @@ PathMatcher::Path PathMatcher::flattenPathStack() const {
     return result;
 }
 
-PathMatcher::Path PathMatcher::match(const Path &inputPath, const std::shared_ptr<NetworkGraph> &graph, double absoluteDistanceThreshold) {
+std::vector<int> PathMatcher::flattenPathStackReachVertexIndices() const
+{
+    std::vector<int> result;
+    int cur = 0;
+    for (const auto&[m_edgeIndex, m_reversed] : m_edgeStack.asVector()) {
+        result.push_back(cur);
+        const auto& edgePath = m_graph->edge(m_edgeIndex).path;
+        cur += edgePath.size();
+    }
+    result.push_back(cur - 1);
+    return result;
+}
+
+PathMatcher::PathMatcherResult PathMatcher::match(const Path &inputPath, const std::shared_ptr<NetworkGraph> &graph, double absoluteDistanceThreshold) {
     PathMatcher matcher(inputPath, graph);
     return matcher.computeClosestPath(absoluteDistanceThreshold);
 }
 
-std::pair<int, int> PathMatcher::matchSegment(const Path &inputPath, const Path &inputReachSegment, const Path &matchedPath) {
+std::vector<PathMatcher::DTWRow> PathMatcher::computeDTW(const Path &p1, const Path &p2)
+{
+    std::vector<DTWRow> dp(p1.size(), DTWRow(p2.size(), 0));
+    dp[0][0] = p1[0].distanceTo(p2[0]);
+    for (int i = 1; i < p1.size(); i++) {
+        dp[i][0] = dp[i - 1][0] + p1[i].distanceTo(p2[0]);
+    }
+    for (int j = 1; j < p2.size(); j++) {
+        dp[0][j] = dp[0][j - 1] + p1[0].distanceTo(p2[j]);
+    }
+    for (int i = 1; i < p1.size(); i++) {
+        for (int j = 1; j < p2.size(); j++) {
+            dp[i][j] = std::min({dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]}) 
+                        + p1[i].distanceTo(p2[j]);
+        }
+    }
+
+    return dp;
+}
+
+PathMatcher::Path PathMatcher::matchVertexConnectedSegment(const Path &inputPath, const Path &inputReachSegment, const Path &matchedPath,
+                                         const std::vector<int>& reachVertexIndices)
+{
+    // reachVertexindices are the indices of the mathcedPath that are also vertices in the network graph 2. (i.e. minima)
+
     if (inputPath.size() == 0 || inputReachSegment.size() == 0 || matchedPath.size() == 0) {
-        return std::make_pair(-1, -1);
+        return Path();
     }
 
     int segmentStartIndex = VectorUtils::firstIndexOf(inputPath, inputReachSegment[0]);
@@ -179,20 +217,7 @@ std::pair<int, int> PathMatcher::matchSegment(const Path &inputPath, const Path 
         std::swap(segmentStartIndex, segmentEndIndex);
     }
 
-    std::vector<DTWRow> dp(inputPath.size(), DTWRow(matchedPath.size(), 0));
-    dp[0][0] = inputPath[0].distanceTo(matchedPath[0]);
-    for (int i = 1; i < inputPath.size(); i++) {
-        dp[i][0] = dp[i - 1][0] + inputPath[i].distanceTo(matchedPath[0]);
-    }
-    for (int j = 1; j < matchedPath.size(); j++) {
-        dp[0][j] = dp[0][j - 1] + inputPath[0].distanceTo(matchedPath[j]);
-    }
-    for (int i = 1; i < inputPath.size(); i++) {
-        for (int j = 1; j < matchedPath.size(); j++) {
-            dp[i][j] = std::min({dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]}) 
-                        + inputPath[i].distanceTo(matchedPath[j]);
-        }
-    }
+    auto dp = computeDTW(inputPath, matchedPath);
 
     std::vector<std::pair<int, int>> matchedDTWIndexPairs;
     std::pair<int, int> cur {inputPath.size() - 1, matchedPath.size() - 1};
@@ -216,20 +241,48 @@ std::pair<int, int> PathMatcher::matchSegment(const Path &inputPath, const Path 
         else cur.second--;   
     }
 
-    Path matchingSegment;
+    
     reverse(matchedDTWIndexPairs.begin(), matchedDTWIndexPairs.end());
 
-    std::function filter = [&](const std::pair<int, int>& indexPair) {
-        return indexPair.first >= segmentStartIndex && indexPair.first <= segmentEndIndex;
-    };
-    return std::make_pair(VectorUtils::first(matchedDTWIndexPairs, filter).second,
-                          VectorUtils::last(matchedDTWIndexPairs, filter).second);
+    int matchedStartIndex = INT_MAX;
+    int matchedEndIndex = INT_MIN;
+    for (auto& indexPair : matchedDTWIndexPairs) {
+        if (!(indexPair.first >= segmentStartIndex && indexPair.first <= segmentEndIndex)) continue;
+        matchedStartIndex = std::min(matchedStartIndex, indexPair.second);
+        matchedEndIndex = std::max(matchedEndIndex, indexPair.second);
+    }
 
-    // for (auto& indexPair : matchedDTWIndexPairs) {
-    //     if (indexPair.first >= segmentStartIndex && indexPair.first <= segmentEndIndex) {
-    //         matchingSegment.push_back(matchedPath[indexPair.second]);
-    //     }
-    // }
-    //
-    // return matchingSegment;
+    std::vector<int> startVertexIndices;
+    std::vector<int> endVertexIndices;
+
+    auto it_matchedStartVertexIndex = std::lower_bound(reachVertexIndices.begin(), reachVertexIndices.end(), matchedStartIndex);
+    if (it_matchedStartVertexIndex != reachVertexIndices.end()) {
+        startVertexIndices.push_back(*it_matchedStartVertexIndex);
+    }
+    if (it_matchedStartVertexIndex != reachVertexIndices.begin()) {
+        startVertexIndices.push_back(*std::prev(it_matchedStartVertexIndex));
+    }
+    auto it_matchedEndVertexIndex = std::lower_bound(reachVertexIndices.begin(), reachVertexIndices.end(), matchedEndIndex);
+    if (it_matchedEndVertexIndex != reachVertexIndices.end()) {
+        endVertexIndices.push_back(*it_matchedEndVertexIndex);    
+    }
+    if (it_matchedEndVertexIndex != reachVertexIndices.begin()) {
+        endVertexIndices.push_back(*std::prev(it_matchedEndVertexIndex));
+    }
+
+    Path bestMatchingSegment;
+    double bestDTWValue = std::numeric_limits<double>::infinity();
+    for (auto startIndex : startVertexIndices) {
+        for (auto endIndex : endVertexIndices) {
+            if (endIndex <= startIndex) continue;
+            
+            Path matchedPathSegment(matchedPath.begin() + startIndex, matchedPath.begin() + endIndex);
+            double DTWValue = computeDTW(inputReachSegment, matchedPathSegment).back().back();
+            if (DTWValue < bestDTWValue) {
+                bestDTWValue = DTWValue;
+                bestMatchingSegment = matchedPathSegment;
+            }
+        }
+    }
+    return bestMatchingSegment;
 }

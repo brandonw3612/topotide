@@ -15,12 +15,12 @@ NetworkDisplayFrame::NetworkDisplayFrame(const QString &name, const std::shared_
 void NetworkDisplayFrame::matchReachPathFrom(const std::shared_ptr<NetworkDisplayFrame> &otherFrame, const std::shared_ptr<NetworkGraph>& filteredNetwork, double th) {
     if (otherFrame->m_reachPath.empty()) return;
     auto matchedPath = PathMatcher::match(otherFrame->m_reachPath, filteredNetwork, th);
-    auto matchedSegmentIndex = PathMatcher::matchSegment(otherFrame->m_reachPath, otherFrame->m_reachSegment, matchedPath);
-    auto matchedSegment = std::vector(matchedPath.begin() + matchedSegmentIndex.first,
-                                      matchedPath.begin() + matchedSegmentIndex.second + 1);
-    std::cout << "Matched a path with len " << matchedPath.size() << " and the subsegment path with len " << matchedSegment.size() << std::endl;
-    m_reachPath = matchedPath;
-    m_reachSegment = matchedSegment;
+    // auto matchedSegmentIndex = PathMatcher::matchSegment(otherFrame->m_reachPath, otherFrame->m_reachSegment, matchedPath);
+    // auto matchedSegment = std::vector(matchedPath.begin() + matchedSegmentIndex.first,
+                                    //   matchedPath.begin() + matchedSegmentIndex.second + 1);
+    // std::cout << "Matched a path with len " << matchedPath.size() << " and the subsegment path with len " << matchedSegment.size() << std::endl;
+    // m_reachPath = matchedPath;
+    // m_reachSegment = matchedSegment;
     emit onViewUpdated();
 }
 

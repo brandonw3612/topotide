@@ -44,17 +44,14 @@ std::shared_ptr<PreComputedReachNetwork> PreComputedReachNetwork::createFrom(
     int numberOfNodes;
     in >> numberOfNodes;
     while (numberOfNodes--) {
-        int nodeIndex, reachSize, reachPathSize, matchedPathSize;
-        in >> nodeIndex >> reachSize >> reachPathSize >> matchedPathSize;
+        int nodeIndex, reachSize, reachPathSize, matchedPathSize, vertexConnectedPathSize;
+        in >> nodeIndex >> reachSize >> reachPathSize >> matchedPathSize >> vertexConnectedPathSize;
         Precomputed p;
         p.nodeIndex = nodeIndex;
         readPoints(in, reachSize);
         p.reachPath = readPoints(in, reachPathSize);
         p.matchedPath = readPoints(in, matchedPathSize);
-        int matchStart, matchEnd, fixedStart, fixedEnd;
-        in >> matchStart >> matchEnd >> fixedStart >> fixedEnd;
-        p.matchedSegment = std::vector<Point>(p.matchedPath.begin() + matchStart, p.matchedPath.begin() + matchEnd + 1);
-        p.fixedSegment = std::vector<Point>(p.matchedPath.begin() + fixedStart, p.matchedPath.begin() + fixedEnd + 1);
+        p.fixedSegment = readPoints(in, vertexConnectedPathSize);
         network->m_precomputed[nodeIndex] = p;
     }
     return network;
