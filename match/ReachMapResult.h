@@ -8,6 +8,7 @@ struct ReachMapResult {
     std::vector<Point> reach;
     std::vector<Point> reachPath;
     std::vector<Point> matchedPath;
+    std::vector<int> matchedPathVertexIndices;
     std::pair<int, int> matchedSegmentRange;
     std::pair<int, int> fixedSegmentRange;
 };

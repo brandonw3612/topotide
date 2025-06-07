@@ -4,14 +4,7 @@
 
 #include "Context.h"
 #include "DualFrameViewer.h"
-#include "Frame.h"
-#include "MatchResultRenderer.h"
-#include "NetworkConverter.h"
-#include "utils/ParallelComputer.hpp"
 #include "PathFrame.h"
-#include "PathMatcher.h"
-#include "PrecomputedDisplayFrame.h"
-#include "PreComputedReachNetwork.h"
 
 void printTime() {
     auto now = std::chrono::system_clock::now();
@@ -80,12 +73,12 @@ int main(int argc, char *argv[]) {
     // dfv.show();
     // return app.exec();
 
-    auto prefix = "/Users/brandon/Desktop/1000_10/";
+    auto prefix = "/Users/brandon/Desktop/50_5_20/";
 
-    context.mapAllFrames(prefix, 1000.0, 10.0);
+    context.mapAllFrames(prefix, 50.0, 5.0, 20.0);
     return 0;
 
-    auto viewer = context.createMappingViewer(prefix, 1000.0, 10.0);
+    auto viewer = context.createMappingViewer(prefix, 50.0);
     viewer->show();
     return app.exec();
 }

@@ -11,9 +11,9 @@ PathMatcher::PathMatcher(const Path &inputPath, const std::shared_ptr<NetworkGra
     m_minDTWD = std::numeric_limits<double>::infinity();
 }
 
-PathMatcher::Path PathMatcher::computeClosestPath(double absoluteDistanceThreshold) {
+PathMatcher::MatchResult PathMatcher::computeClosestPath(double absoluteDistanceThreshold) {
     m_minDTWD = std::numeric_limits<double>::infinity();
-    m_bestPath.clear();
+    m_bestResult = MatchResult();
     m_ignoredEdges.clear();
 
     filterEdgesOnAbsoluteDistance(absoluteDistanceThreshold);
@@ -45,7 +45,7 @@ PathMatcher::Path PathMatcher::computeClosestPath(double absoluteDistanceThresho
         dfs();
     }
 
-    return m_bestPath;
+    return m_bestResult;
 }
 
 void PathMatcher::dfs() {
@@ -82,7 +82,7 @@ void PathMatcher::dfs() {
         const double finalDTW = currentRow.back();
         if (finalDTW < m_minDTWD) {
             m_minDTWD = finalDTW;
-            m_bestPath = flattenPathStack();
+            m_bestResult = flattenPathStack();
             // Filter out edges that can never be included
             while (m_lowerBoundEdgeDTWDistanceCostQueue.size() && m_lowerBoundEdgeDTWDistanceCostQueue.top().first > m_minDTWD) {
                 auto& p = m_lowerBoundEdgeDTWDistanceCostQueue.top();
@@ -148,20 +148,25 @@ void PathMatcher::initializeLowerBoundEdgeDTWDistanceCostQueue() {
     
 }
 
-PathMatcher::Path PathMatcher::flattenPathStack() const {
-    Path result;
+PathMatcher::MatchResult PathMatcher::flattenPathStack() const {
+    MatchResult result;
     for (const auto&[m_edgeIndex, m_reversed] : m_edgeStack.asVector()) {
-        const auto& edgePath = m_graph->edge(m_edgeIndex).path;
-        if (m_reversed) {
-            result.insert(result.end(), edgePath.rbegin(), edgePath.rend());
-        } else {
-            result.insert(result.end(), edgePath.begin(), edgePath.end());
+        const auto& edge = m_graph->edge(m_edgeIndex);
+        const auto& edgePath = edge.path;
+        if (result.vertexIndices.empty()) {
+            result.vertexIndices.push_back(0);
         }
+        if (m_reversed) {
+            result.path.insert(result.path.end(), edgePath.rbegin(), edgePath.rend());
+        } else {
+            result.path.insert(result.path.end(), edgePath.begin(), edgePath.end());
+        }
+        result.vertexIndices.push_back(static_cast<int>(result.path.size()) - 1);
     }
     return result;
 }
 
-PathMatcher::Path PathMatcher::match(const Path &inputPath, const std::shared_ptr<NetworkGraph> &graph, double absoluteDistanceThreshold) {
+PathMatcher::MatchResult PathMatcher::match(const Path &inputPath, const std::shared_ptr<NetworkGraph> &graph, double absoluteDistanceThreshold) {
     PathMatcher matcher(inputPath, graph);
     return matcher.computeClosestPath(absoluteDistanceThreshold);
 }
@@ -222,8 +227,8 @@ std::pair<int, int> PathMatcher::matchSegment(const Path &inputPath, const Path 
     std::function filter = [&](const std::pair<int, int>& indexPair) {
         return indexPair.first >= segmentStartIndex && indexPair.first <= segmentEndIndex;
     };
-    return std::make_pair(VectorUtils::first(matchedDTWIndexPairs, filter).second,
-                          VectorUtils::last(matchedDTWIndexPairs, filter).second);
+    return std::make_pair(VectorUtils::firstWhere(matchedDTWIndexPairs, filter).second,
+                          VectorUtils::lastWhere(matchedDTWIndexPairs, filter).second);
 
     // for (auto& indexPair : matchedDTWIndexPairs) {
     //     if (indexPair.first >= segmentStartIndex && indexPair.first <= segmentEndIndex) {

@@ -14,7 +14,8 @@ NetworkDisplayFrame::NetworkDisplayFrame(const QString &name, const std::shared_
 
 void NetworkDisplayFrame::matchReachPathFrom(const std::shared_ptr<NetworkDisplayFrame> &otherFrame, const std::shared_ptr<NetworkGraph>& filteredNetwork, double th) {
     if (otherFrame->m_reachPath.empty()) return;
-    auto matchedPath = PathMatcher::match(otherFrame->m_reachPath, filteredNetwork, th);
+    auto match = PathMatcher::match(otherFrame->m_reachPath, filteredNetwork, th);
+    auto matchedPath = match.path;
     auto matchedSegmentIndex = PathMatcher::matchSegment(otherFrame->m_reachPath, otherFrame->m_reachSegment, matchedPath);
     auto matchedSegment = std::vector(matchedPath.begin() + matchedSegmentIndex.first,
                                       matchedPath.begin() + matchedSegmentIndex.second + 1);

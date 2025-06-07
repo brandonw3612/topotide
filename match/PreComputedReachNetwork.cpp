@@ -54,7 +54,9 @@ std::shared_ptr<PreComputedReachNetwork> PreComputedReachNetwork::createFrom(
         int matchStart, matchEnd, fixedStart, fixedEnd;
         in >> matchStart >> matchEnd >> fixedStart >> fixedEnd;
         p.matchedSegment = std::vector<Point>(p.matchedPath.begin() + matchStart, p.matchedPath.begin() + matchEnd + 1);
-        p.fixedSegment = std::vector<Point>(p.matchedPath.begin() + fixedStart, p.matchedPath.begin() + fixedEnd + 1);
+        if (fixedStart <= fixedEnd) {
+            p.fixedSegment = std::vector<Point>(p.matchedPath.begin() + fixedStart, p.matchedPath.begin() + fixedEnd + 1);
+        }
         network->m_precomputed[nodeIndex] = p;
     }
     return network;

@@ -1,6 +1,7 @@
 #ifndef PATHMATCHER_H
 #define PATHMATCHER_H
 
+#include <map>
 #include <memory>
 #include <stack>
 #include <queue>
@@ -11,6 +12,12 @@
 #include "utils/VectorStack.hpp"
 
 class PathMatcher {
+public:
+    struct MatchResult {
+        std::vector<Point> path;
+        std::vector<int> vertexIndices;
+    };
+
 private:
     struct EdgePathSegment {
         int m_edgeIndex;
@@ -28,21 +35,21 @@ private:
     std::stack<DTWRow> m_dtwStack;
 
     double m_minDTWD;
-    Path m_bestPath;
+    MatchResult m_bestResult;
 
     std::unordered_set<int> m_ignoredEdges;
     std::priority_queue<std::pair<double, int>> m_lowerBoundEdgeDTWDistanceCostQueue;
 
 private:
     PathMatcher(const Path& inputPath, const std::shared_ptr<NetworkGraph>& graph);
-    Path computeClosestPath(double absoluteDistanceThreshold);
-    [[nodiscard]] Path flattenPathStack() const;
+    MatchResult computeClosestPath(double absoluteDistanceThreshold);
+    [[nodiscard]] MatchResult flattenPathStack() const;
     void dfs();
     void filterEdgesOnAbsoluteDistance(double absoluteDistanceThreshold);
     void initializeLowerBoundEdgeDTWDistanceCostQueue();
 
 public:
-    static Path match(const Path& inputPath, const std::shared_ptr<NetworkGraph>& graph, double absoluteDistanceThreshold);
+    static MatchResult match(const Path& inputPath, const std::shared_ptr<NetworkGraph>& graph, double absoluteDistanceThreshold);
     static std::pair<int, int> matchSegment(const Path& inputPath, const Path& inputReachSegment, const Path& matchedPath);
 };
 

@@ -6,8 +6,8 @@
 
 class VectorUtils {
 public:
-    template <typename T>
-    static int firstIndexOf(const std::vector<T>& vec, std::function<bool(const T&)> predicate) {
+    template <typename T, typename Predicate>
+    static int firstIndexWhere(const std::vector<T>& vec, Predicate&& predicate) {
         for (int i = 0; i < vec.size(); ++i) {
             if (predicate(vec[i])) {
                 return i;
@@ -16,8 +16,8 @@ public:
         return -1; // Not found
     }
 
-    template <typename T>
-    static int lastIndexOf(const std::vector<T>& vec, std::function<bool(const T&)> predicate) {
+    template <typename T, typename Predicate>
+    static int lastIndexWhere(const std::vector<T>& vec, Predicate&& predicate) {
         for (int i = vec.size() - 1; i >= 0; --i) {
             if (predicate(vec[i])) {
                 return i;
@@ -46,8 +46,8 @@ public:
         return -1; // Not found
     }
 
-    template <typename T>
-    static const T& first(const std::vector<T>& vec, std::function<bool(const T&)> predicate) {
+    template <typename T, typename Predicate>
+    static const T& firstWhere(const std::vector<T>& vec, Predicate&& predicate) {
         for (const auto& e : vec) {
             if (predicate(e)) {
                 return e;
@@ -56,8 +56,8 @@ public:
         throw std::runtime_error("No element found matching the predicate");
     }
 
-    template <typename T>
-    static const T& last(const std::vector<T>& vec, std::function<bool(const T&)> predicate) {
+    template <typename T, typename Predicate>
+    static const T& lastWhere(const std::vector<T>& vec, Predicate&& predicate) {
         for (auto it = vec.rbegin(); it != vec.rend(); ++it) {
             if (predicate(*it)) {
                 return *it;

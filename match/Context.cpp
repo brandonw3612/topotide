@@ -217,7 +217,7 @@ void Context::buildAbstractionForAllFrames() {
 }
 
 std::map<int, ReachMapResult> Context::mapNetworks(const std::shared_ptr<ReachNetwork> &n1,
-    const std::shared_ptr<ReachNetwork> &n2) {
+    const std::shared_ptr<ReachNetwork> &n2, double adt) {
     auto ng2 = NetworkConverter::rn2ng(n2);
     int offset = n1->getNodes().begin()->first;
     std::set validNodes = { n1->getNodes().begin()->first };
@@ -233,17 +233,23 @@ std::map<int, ReachMapResult> Context::mapNetworks(const std::shared_ptr<ReachNe
     ParallelComputer pc(8);
     for (int nodeIndex: validNodes) {
         auto matched = pc.run([=] {
+            auto start = std::chrono::system_clock::now();
+            std::time_t start_time = std::chrono::system_clock::to_time_t(start);
             auto reachPath = n1->getReachPath(nodeIndex);
             auto reachSegment = n1->getNodes()[nodeIndex]->getReach()->getPoints();
-            auto matchedPath = PathMatcher::match(reachPath, ng2, 10000.0);
-            auto matchedSegmentIndex = PathMatcher::matchSegment(reachPath, reachSegment, matchedPath);
+            auto match = PathMatcher::match(reachPath, ng2, adt);
+            auto matchedSegmentIndex = PathMatcher::matchSegment(reachPath, reachSegment, match.path);
+            auto end = std::chrono::system_clock::now();
+            std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
             std::cout << "[" << nodeIndex - offset << "/" << validNodes.size() << "] Matched reach " << nodeIndex <<
-                    " and the subsegment path with len " << matchedSegmentIndex.second - matchedSegmentIndex.first + 1 << std::endl;
+                    " and the subsegment path with len " << matchedSegmentIndex.second - matchedSegmentIndex.first + 1 << " in " << duration << "ms." << std::endl;
             ReachMapResult result;
             result.reach = reachSegment;
             result.reachPath = reachPath;
             result.matchedSegmentRange = matchedSegmentIndex;
-            result.matchedPath = matchedPath;
+            result.matchedPath = match.path;
+            result.matchedPathVertexIndices = match.vertexIndices;
             return result;
         });
         mappedPoints[nodeIndex] = std::move(matched);
@@ -257,17 +263,44 @@ std::map<int, ReachMapResult> Context::mapNetworks(const std::shared_ptr<ReachNe
         auto [start, end] = result.matchedSegmentRange;
         if (up != nullptr && results.contains(up->getNode()->getReach()->getIndex())) {
             auto upResult = results[up->getNode()->getReach()->getIndex()];
-            while (start >= 0 && VectorUtils::firstIndexOf(upResult.matchedPath, result.matchedPath[start]) == -1) {
-                start--;
+            int firstNotOnParent = VectorUtils::firstIndexWhere(result.matchedPathVertexIndices, [=](const auto& i) {
+                return VectorUtils::firstIndexOf(upResult.matchedPath, result.matchedPath[i]) == -1;
+            });
+            // -1: Every vertex is on the parent path; 0: The first vertex is not on the parent path.
+            if (firstNotOnParent <= 0) {
+                start = result.matchedPath.size();
+            } else if (start >= result.matchedPathVertexIndices[firstNotOnParent - 1]) {
+                start = result.matchedPathVertexIndices[firstNotOnParent - 1];
+            } else {
+                int left = VectorUtils::lastIndexWhere(result.matchedPathVertexIndices, [=](const auto& i) {
+                    return i < start;
+                });
+                if (VectorUtils::firstIndexOf(upResult.matchedPath, result.matchedPath[result.matchedPathVertexIndices[left + 1]]) != -1) {
+                    start = result.matchedPathVertexIndices[left + 1];
+                } else {
+                    start = result.matchedPathVertexIndices[left];
+                }
             }
-            if (start < 0) continue;
         }
         if (dp != nullptr && results.contains(dp->getNode()->getReach()->getIndex())) {
             auto dpResult = results[dp->getNode()->getReach()->getIndex()];
-            while (end < result.matchedPath.size() && VectorUtils::lastIndexOf(dpResult.matchedPath, result.matchedPath[end]) == -1) {
-                end++;
+            int lastNotOnParent = VectorUtils::lastIndexWhere(result.matchedPathVertexIndices, [=](const auto& i) {
+                return VectorUtils::lastIndexOf(dpResult.matchedPath, result.matchedPath[i]) == -1;
+            });
+            if (lastNotOnParent < 0 || lastNotOnParent >= result.matchedPathVertexIndices.size()) {
+                end = 0;
+            } else if (end >= result.matchedPathVertexIndices[lastNotOnParent + 1]) {
+                end = result.matchedPathVertexIndices[lastNotOnParent + 1];
+            } else {
+                int right = VectorUtils::firstIndexWhere(result.matchedPathVertexIndices, [=](const auto& i) {
+                    return i > end;
+                });
+                if (VectorUtils::lastIndexOf(dpResult.matchedPath, result.matchedPath[result.matchedPathVertexIndices[right - 1]]) != -1) {
+                    end = result.matchedPathVertexIndices[right - 1];
+                } else {
+                    end = result.matchedPathVertexIndices[right];
+                }
             }
-            if (end >= result.matchedPath.size()) continue;
         }
         result.fixedSegmentRange = std::make_pair(start, end);
         results[nodeIndex] = result;
@@ -275,7 +308,7 @@ std::map<int, ReachMapResult> Context::mapNetworks(const std::shared_ptr<ReachNe
     return results;
 }
 
-void Context::mapAllFrames(std::string outputFilePrefix, double sourceDeltaThreshold, double targetDeltaThreshold) {
+void Context::mapAllFrames(std::string outputFilePrefix, double sourceDeltaThreshold, double targetDeltaThreshold, double adt) {
     for (int i = 0; i < m_frames.size() - 1; i++) {
         std::cout << "Mapping frame " << i << " to frame " << i + 1 << std::endl;
         auto now = std::chrono::system_clock::now();
@@ -287,7 +320,7 @@ void Context::mapAllFrames(std::string outputFilePrefix, double sourceDeltaThres
         auto n2 = m_frames[i + 1]->getNetwork()->filter([targetDeltaThreshold](const auto &node) {
             return node->getReach()->getDelta() >= targetDeltaThreshold;
         });
-        auto results = mapNetworks(n1, n2);
+        auto results = mapNetworks(n1, n2, adt);
         std::ofstream outFile(outputFilePrefix + std::to_string(i) + "_mapped.txt", std::ios::out);
         outFile << results.size() << std::endl;
         for (const auto& [nodeIndex, _] : results) {
@@ -315,13 +348,13 @@ void Context::mapAllFrames(std::string outputFilePrefix, double sourceDeltaThres
     }
 }
 
-MappingViewer* Context::createMappingViewer(std::string resultPrefix, double sourceDeltaThreshold, double targetDeltaThreshold) {
+MappingViewer* Context::createMappingViewer(const std::string &resultPrefix, double sourceDeltaThreshold) {
     std::vector<std::shared_ptr<PrecomputedDisplayFrame>> frames;
     for (int i = 0; i < m_frames.size() - 1; i++) {
         auto n1 = m_frames[i]->getNetwork()->filter([sourceDeltaThreshold](const auto &node) {
             return node->getReach()->getDelta() >= sourceDeltaThreshold;
         });
-        std::cout << "Loading precomputer results for " << m_frames[i]->getName().toStdString() << std::endl;
+        std::cout << "Loading precomputed results for " << m_frames[i]->getName().toStdString() << std::endl;
         auto precomputed = PreComputedReachNetwork::createFrom(n1, resultPrefix + std::to_string(i) + "_mapped.txt");
         auto frame = std::make_shared<PrecomputedDisplayFrame>(
             m_frames[i]->getName() + "/" + m_frames[i + 1]->getName(),
