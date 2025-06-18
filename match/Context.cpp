@@ -6,6 +6,7 @@
 #include <iostream>
 #include <set>
 #include <QFileInfo>
+#include <set>
 
 #include "MappingViewer.h"
 #include "io/esrigridreader.h"
@@ -258,54 +259,136 @@ std::map<int, ReachMapResult> Context::mapNetworks(const std::shared_ptr<ReachNe
     std::map<int, ReachMapResult> results;
     for (auto &[nodeIndex, future]: mappedPoints) {
         auto result = future.get();
-        auto node = n1->getNodes()[nodeIndex];
-        auto up = node->getUpstreamParent(), dp = node->getDownstreamParent();
-        auto [start, end] = result.matchedSegmentRange;
-        if (up != nullptr && results.contains(up->getNode()->getReach()->getIndex())) {
-            auto upResult = results[up->getNode()->getReach()->getIndex()];
-            int firstNotOnParent = VectorUtils::firstIndexWhere(result.matchedPathVertexIndices, [=](const auto& i) {
-                return VectorUtils::firstIndexOf(upResult.matchedPath, result.matchedPath[i]) == -1;
-            });
-            // -1: Every vertex is on the parent path; 0: The first vertex is not on the parent path.
-            if (firstNotOnParent <= 0) {
-                start = result.matchedPath.size();
-            } else if (start >= result.matchedPathVertexIndices[firstNotOnParent - 1]) {
-                start = result.matchedPathVertexIndices[firstNotOnParent - 1];
-            } else {
-                int left = VectorUtils::lastIndexWhere(result.matchedPathVertexIndices, [=](const auto& i) {
-                    return i < start;
-                });
-                if (VectorUtils::firstIndexOf(upResult.matchedPath, result.matchedPath[result.matchedPathVertexIndices[left + 1]]) != -1) {
-                    start = result.matchedPathVertexIndices[left + 1];
-                } else {
-                    start = result.matchedPathVertexIndices[left];
-                }
-            }
-        }
-        if (dp != nullptr && results.contains(dp->getNode()->getReach()->getIndex())) {
-            auto dpResult = results[dp->getNode()->getReach()->getIndex()];
-            int lastNotOnParent = VectorUtils::lastIndexWhere(result.matchedPathVertexIndices, [=](const auto& i) {
-                return VectorUtils::lastIndexOf(dpResult.matchedPath, result.matchedPath[i]) == -1;
-            });
-            if (lastNotOnParent < 0 || lastNotOnParent >= result.matchedPathVertexIndices.size()) {
-                end = 0;
-            } else if (end >= result.matchedPathVertexIndices[lastNotOnParent + 1]) {
-                end = result.matchedPathVertexIndices[lastNotOnParent + 1];
-            } else {
-                int right = VectorUtils::firstIndexWhere(result.matchedPathVertexIndices, [=](const auto& i) {
-                    return i > end;
-                });
-                if (VectorUtils::lastIndexOf(dpResult.matchedPath, result.matchedPath[result.matchedPathVertexIndices[right - 1]]) != -1) {
-                    end = result.matchedPathVertexIndices[right - 1];
-                } else {
-                    end = result.matchedPathVertexIndices[right];
-                }
-            }
-        }
-        result.fixedSegmentRange = std::make_pair(start, end);
+        result.fixedSegmentRange = getConnectedStartAndEndIndices(nodeIndex, result, results, n1, n2);
         results[nodeIndex] = result;
     }
     return results;
+}
+
+std::pair<int, int> Context::getConnectedStartAndEndIndices(int nodeIndex, ReachMapResult& result, std::map<int, ReachMapResult>& results,
+                    const std::shared_ptr<ReachNetwork>& n1, const std::shared_ptr<ReachNetwork> &n2) {
+    auto node = n1->getNodes()[nodeIndex];
+    auto up = node->getUpstreamParent(), dp = node->getDownstreamParent();
+    auto [start, end] = result.matchedSegmentRange;
+
+    std::set<Point> validStopPoints;
+    if (up != nullptr) {
+        auto upResult = results[up->getNode()->getReach()->getIndex()];
+        for (auto vertexIndex : result.matchedPathVertexIndices) {
+            auto vertexPoint = result.matchedPath[vertexIndex];
+            if (VectorUtils::firstIndexOf(upResult.matchedPath, vertexPoint) != -1) {
+                validStopPoints.insert(vertexPoint);
+            }
+        }
+    }
+    if (dp != nullptr) {
+        auto downResult = results[dp->getNode()->getReach()->getIndex()];
+        for (auto vertexIndex : result.matchedPathVertexIndices) {
+            auto vertexPoint = result.matchedPath[vertexIndex];
+            if (VectorUtils::firstIndexOf(downResult.matchedPath, vertexPoint) != -1) {
+                validStopPoints.insert(vertexPoint);
+            }
+        }
+    }
+    if (dp == nullptr && up == nullptr) {
+        return {0, result.matchedPath.size() - 1};
+    }
+    if (dp == nullptr || up == nullptr) {
+        validStopPoints.insert(result.matchedPath[0]);
+        validStopPoints.insert(result.matchedPath.back());
+    }
+    int start1 = start, start2 = start, end1 = end, end2 = end;
+    while (start1 > 0) {
+        if (validStopPoints.count(result.matchedPath[start1])) {
+            break;
+        }
+        start1--;
+    }
+    while (start2 < result.matchedPath.size() - 1) {
+        if (validStopPoints.count(result.matchedPath[start2])) {
+            break;
+        }
+        start2++;
+    }
+    while (end1 > 0) {
+        if (validStopPoints.count(result.matchedPath[end1])) {
+            break;
+        }
+        end1--;
+    }
+    while (end2 < result.matchedPath.size() - 1) {
+        if (validStopPoints.count(result.matchedPath[end2])) {
+            break;
+        }
+        end2++;
+    }
+
+    std::vector<std::pair<int, int>> validPairs;
+    if (up == nullptr) std::swap(dp, up);
+    if (dp == nullptr) { // Now only dp is nullptr
+        for (auto testStart : {start1, start2}) {
+            for (auto testEnd : {end1, end2}) {
+                if (testStart >= testEnd) continue;
+                auto upResult = results[up->getNode()->getReach()->getIndex()];
+                auto vertexPointStart = result.matchedPath[testStart];
+                auto vertexPointEnd = result.matchedPath[testEnd];
+                if ((VectorUtils::firstIndexOf(upResult.matchedPath, vertexPointStart) != -1) ^
+                    (VectorUtils::firstIndexOf(upResult.matchedPath, vertexPointEnd) != -1)) { // Only one end should overlap
+                    validPairs.push_back({testStart, testEnd});
+                }
+            }
+        }
+        int cost = INT_MAX;
+        std::pair<int, int> bestPair;
+        for (auto& validPair : validPairs) {
+            int checkCost = std::abs(validPair.first - start) + std::abs(validPair.second - end);
+            if (checkCost < cost) {
+                cost = checkCost;
+                bestPair = validPair;
+            }
+        }
+        if (cost == INT_MAX) {
+            return {start1, end2}; // Preferably, this does not happen, but it does happen that in some cases the reach parent becomes unreachable
+        }
+        return bestPair;
+    } else { // Both are present
+        for (auto testStart : {start1, start2}) {
+            for (auto testEnd : {end1, end2}) {
+                if (testStart >= testEnd) continue;
+                auto downResult = results[dp->getNode()->getReach()->getIndex()];
+                auto upResult = results[up->getNode()->getReach()->getIndex()];
+                auto vertexPointStart = result.matchedPath[testStart];
+                auto vertexPointEnd = result.matchedPath[testEnd];
+
+                bool startMatchedWithUp = VectorUtils::firstIndexOf(upResult.matchedPath, vertexPointStart) != -1;
+                bool startMatchedWithDown = VectorUtils::firstIndexOf(downResult.matchedPath, vertexPointStart) != -1;
+                bool endMatchedWithUp = VectorUtils::firstIndexOf(upResult.matchedPath, vertexPointEnd) != -1;
+                bool endMatchedWithDown = VectorUtils::firstIndexOf(downResult.matchedPath, vertexPointEnd) != -1;
+
+                if ((startMatchedWithDown) &&
+                    (endMatchedWithUp)) { // Only one end should overlap
+                    validPairs.push_back({testStart, testEnd});
+                } else if ((startMatchedWithUp) &&
+                    (endMatchedWithDown)) {
+                    validPairs.push_back({testStart, testEnd});
+                }
+            }
+        }
+
+        int cost = INT_MAX;
+        std::pair<int, int> bestPair;
+        for (auto& validPair : validPairs) {
+            int checkCost = std::abs(validPair.first - start) + std::abs(validPair.second - end);
+            if (checkCost < cost) {
+                cost = checkCost;
+                bestPair = validPair;
+            }
+        }
+        if (cost == INT_MAX) {
+            return {start1, end2}; // Preferably, this does not happen, but it does happen that in some cases the reach parent becomes unreachable
+        }
+        return bestPair;
+    }
 }
 
 void Context::mapAllFrames(std::string outputFilePrefix, double sourceDeltaThreshold, double targetDeltaThreshold, double adt) {

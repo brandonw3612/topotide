@@ -32,6 +32,8 @@ public:
     void computeNetworkGraph();
     void buildAbstractionForAllFrames();
     void mapAllFrames(std::string outputFilePrefix, double sourceDeltaThreshold = 20.0, double targetDeltaThreshold = 2.0, double adt = 10000.0);
+    static std::pair<int, int> getConnectedStartAndEndIndices(int nodeIndex, ReachMapResult& result, std::map<int, ReachMapResult>& results,
+                        const std::shared_ptr<ReachNetwork>& n1, const std::shared_ptr<ReachNetwork> &n2);
     MappingViewer* createMappingViewer(const std::string &resultPrefix, double sourceDeltaThreshold = 20.0);
 
 private:
