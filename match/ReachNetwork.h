@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <set>
 
 #include "Reach.h"
 
@@ -88,6 +89,9 @@ public:
         friend class ReachNetwork;
         friend class PreComputedReachNetwork;
     };
+
+    public:
+        std::set<Point> getMinima();
 
 
 private:

@@ -33,6 +33,9 @@ QGraphicsScene * PrecomputedDisplayFrame::getScene() const {
         auto path = createPath(m_network->getNodes()[m_highlightedReachId]->getReach()->getPoints());
         scene->addPath(path, createPen(1, 3), QBrush(Qt::transparent));
     }
+    for (const auto& p : m_network->getMinima()) {
+        scene->addEllipse(p.x - 0.5, p.y - 0.5, 1.0, 1.0, createDotPen(1, 1), QBrush(Qt::transparent));
+    }
     return scene;
 }
 
@@ -54,6 +57,15 @@ QGraphicsScene * PrecomputedDisplayFrame::getMappedScene() const {
         auto path = createPath(m_network->getMatchedSegment(m_highlightedReachId));;
         scene->addPath(path, createPen(1, 3), QBrush(Qt::transparent));
     }
+    for (const auto& id : m_network->getMappedReachIndices()) {
+        auto node = m_network->getNodes()[id];
+        auto depth = node->getDepth();
+        auto p1 = m_network->getMatchedSegment(id).front();
+        auto p2 = m_network->getMatchedSegment(id).back();
+        for (const auto& p : {p1, p2}) {
+            scene->addEllipse(p.x - 0.5, p.y - 0.5, 1.0, 1.0, createDotPen(1, 1), QBrush(Qt::transparent));
+        }
+    }
     return scene;
 }
 
@@ -69,3 +81,6 @@ QPen PrecomputedDisplayFrame::createPen(float alpha, double width) {
     return QPen(QBrush(QColor::fromRgb(0, (int)(255 * alpha), 0)), width);
 }
 
+QPen PrecomputedDisplayFrame::createDotPen(float alpha, double width) {
+    return QPen(QBrush(QColor::fromRgb((int)(255 * alpha), 0, 0)), width);
+}

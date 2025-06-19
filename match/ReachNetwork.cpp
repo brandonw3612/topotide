@@ -59,7 +59,18 @@ ReachNetwork::_::_(Connection connection, const Reach::IndexedPoint &intersectio
     m_node = node;
 }
 
-std::shared_ptr<ReachNetwork::Parent> ReachNetwork::getUpstreamParent(int index) {
+std::set<Point> ReachNetwork::getMinima()
+{
+    std::set<Point> minima;
+    for (auto& [index, node] : m_nodes) {
+        minima.insert(node->m_reach->getFront().location);
+        minima.insert(node->m_reach->getBack().location);
+    }
+    return minima;
+}
+
+std::shared_ptr<ReachNetwork::Parent> ReachNetwork::getUpstreamParent(int index)
+{
     for (const auto& edge : m_upstreamEdges) {
         if (edge->getChildIndex() == index) {
             auto node = m_nodes[edge->getParentIndex()];

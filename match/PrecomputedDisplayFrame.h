@@ -30,6 +30,7 @@ public:
     void updatePointerLocation(double x, double y);
 
 private:
+    static QPen createDotPen(float alpha, double width);
     static QPen createPen(float alpha, double width);
 
 signals:
