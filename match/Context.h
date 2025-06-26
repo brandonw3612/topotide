@@ -32,7 +32,7 @@ public:
     void computeNetworkGraph();
     void buildAbstractionForAllFrames();
     void mapAllFrames(std::string outputFilePrefix, double sourceDeltaThreshold = 20.0, double targetDeltaThreshold = 2.0, double adt = 10000.0);
-    MappingViewer* createMappingViewer(const std::string &resultPrefix, double sourceDeltaThreshold = 20.0);
+    MappingViewer* createMappingViewer(const std::string &resultPrefix, double sourceDeltaThreshold = 20.0, double targetDeltaThreshold = 2.0);
 
 private:
     static std::shared_ptr<RiverFrame> loadFrame(const QString& file_name, Units& units);

@@ -5,12 +5,14 @@
 MatchResultRenderer::MatchResultRenderer() {
     auto rootLayout = new QVBoxLayout;
     m_topGraphicsView = new SGraphicsView(0);
-    m_bottomGraphicsView = new SGraphicsView(1);
+    m_middleGraphicsView = new SGraphicsView(1);
+    m_bottomGraphicsView = new SGraphicsView(2);
     rootLayout->addWidget(m_topGraphicsView, 1);
+    rootLayout->addWidget(m_middleGraphicsView, 1);
     rootLayout->addWidget(m_bottomGraphicsView, 1);
 
-    m_topGraphicsView->setSynchronizedView(m_bottomGraphicsView);
-    m_bottomGraphicsView->setSynchronizedView(m_topGraphicsView);
+    m_topGraphicsView->setSynchronizedView(m_middleGraphicsView);
+    m_middleGraphicsView->setSynchronizedView(m_topGraphicsView);
 
     this->setLayout(rootLayout);
 }
@@ -35,5 +37,6 @@ void MatchResultRenderer::setFrame(const std::shared_ptr<PrecomputedDisplayFrame
 
 void MatchResultRenderer::refreshViews() {
     m_topGraphicsView->setScene(m_frame->getScene());
-    m_bottomGraphicsView->setScene(m_frame->getMappedScene());
+    m_middleGraphicsView->setScene(m_frame->getMappedScene());
+    m_bottomGraphicsView->setScene(m_frame->getOriginalMappedScene());
 }

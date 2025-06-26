@@ -12,7 +12,7 @@ class MatchResultRenderer : public QWidget {
 
 private:
     std::shared_ptr<PrecomputedDisplayFrame> m_frame;
-    SGraphicsView *m_topGraphicsView, *m_bottomGraphicsView;
+    SGraphicsView *m_topGraphicsView, *m_middleGraphicsView, *m_bottomGraphicsView;
 
 public:
     MatchResultRenderer();

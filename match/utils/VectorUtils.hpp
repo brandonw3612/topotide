@@ -1,7 +1,6 @@
 #ifndef  VECTOR_UTILS_HPP
 #define VECTOR_UTILS_HPP
 
-#include <functional>
 #include <vector>
 
 class VectorUtils {
@@ -64,6 +63,31 @@ public:
             }
         }
         throw std::runtime_error("No element found matching the predicate");
+    }
+
+    template <typename T, typename Predicate>
+    static bool all(const std::vector<T>& vec, Predicate&& predicate) {
+        for (const auto& e : vec) {
+            if (!predicate(e)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    template <typename T, typename Predicate>
+    static bool any(const std::vector<T>& vec, Predicate&& predicate) {
+        for (const auto& e : vec) {
+            if (predicate(e)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    template <typename T>
+    static bool contains(const std::vector<T>& vec, const T& value) {
+        return std::find(vec.begin(), vec.end(), value) != vec.end();
     }
 };
 

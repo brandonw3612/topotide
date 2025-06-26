@@ -261,21 +261,27 @@ std::map<int, ReachMapResult> Context::mapNetworks(const std::shared_ptr<ReachNe
         auto node = n1->getNodes()[nodeIndex];
         auto up = node->getUpstreamParent(), dp = node->getDownstreamParent();
         auto [start, end] = result.matchedSegmentRange;
+        std::vector resultMatchedSegment(result.matchedPath.begin() + start, result.matchedPath.begin() + end + 1);
         if (up != nullptr && results.contains(up->getNode()->getReach()->getIndex())) {
             auto upResult = results[up->getNode()->getReach()->getIndex()];
             int firstNotOnParent = VectorUtils::firstIndexWhere(result.matchedPathVertexIndices, [=](const auto& i) {
                 return VectorUtils::firstIndexOf(upResult.matchedPath, result.matchedPath[i]) == -1;
             });
-            // -1: Every vertex is on the parent path; 0: The first vertex is not on the parent path.
-            if (firstNotOnParent <= 0) {
+            if (firstNotOnParent <= 0 && VectorUtils::all(resultMatchedSegment, [=](const auto& p) {
+                return VectorUtils::contains(upResult.matchedPath, p);
+            })) {
                 start = result.matchedPath.size();
-            } else if (start >= result.matchedPathVertexIndices[firstNotOnParent - 1]) {
+            } else if (firstNotOnParent > 0 && start >= result.matchedPathVertexIndices[firstNotOnParent - 1]) {
                 start = result.matchedPathVertexIndices[firstNotOnParent - 1];
             } else {
                 int left = VectorUtils::lastIndexWhere(result.matchedPathVertexIndices, [=](const auto& i) {
                     return i < start;
                 });
-                if (VectorUtils::firstIndexOf(upResult.matchedPath, result.matchedPath[result.matchedPathVertexIndices[left + 1]]) != -1) {
+                auto leftI = result.matchedPathVertexIndices[left];
+                auto leftP1I = result.matchedPathVertexIndices[left + 1];
+                auto leftMid = leftI / 2 + leftP1I / 2;
+                if (VectorUtils::contains(upResult.matchedPath, result.matchedPath[leftMid]) &&
+                    VectorUtils::contains(upResult.matchedPath, result.matchedPath[leftP1I])) {
                     start = result.matchedPathVertexIndices[left + 1];
                 } else {
                     start = result.matchedPathVertexIndices[left];
@@ -287,15 +293,21 @@ std::map<int, ReachMapResult> Context::mapNetworks(const std::shared_ptr<ReachNe
             int lastNotOnParent = VectorUtils::lastIndexWhere(result.matchedPathVertexIndices, [=](const auto& i) {
                 return VectorUtils::lastIndexOf(dpResult.matchedPath, result.matchedPath[i]) == -1;
             });
-            if (lastNotOnParent < 0 || lastNotOnParent >= result.matchedPathVertexIndices.size()) {
-                end = 0;
-            } else if (end >= result.matchedPathVertexIndices[lastNotOnParent + 1]) {
+            if ((lastNotOnParent < 0 || lastNotOnParent == result.matchedPathVertexIndices.size() - 1) && VectorUtils::all(resultMatchedSegment, [=](const auto& p) {
+                return VectorUtils::contains(dpResult.matchedPath, p);
+            })) {
+                end = -1;
+            } else if (lastNotOnParent >= 0 && lastNotOnParent < result.matchedPathVertexIndices.size() - 1 && end <= result.matchedPathVertexIndices[lastNotOnParent + 1]) {
                 end = result.matchedPathVertexIndices[lastNotOnParent + 1];
             } else {
                 int right = VectorUtils::firstIndexWhere(result.matchedPathVertexIndices, [=](const auto& i) {
                     return i > end;
                 });
-                if (VectorUtils::lastIndexOf(dpResult.matchedPath, result.matchedPath[result.matchedPathVertexIndices[right - 1]]) != -1) {
+                auto rightI = result.matchedPathVertexIndices[right];
+                auto rightM1I = result.matchedPathVertexIndices[right - 1];
+                auto rightMid = rightI / 2 + rightM1I / 2;
+                if (VectorUtils::contains(dpResult.matchedPath, result.matchedPath[rightMid]) &&
+                    VectorUtils::contains(dpResult.matchedPath, result.matchedPath[rightM1I])) {
                     end = result.matchedPathVertexIndices[right - 1];
                 } else {
                     end = result.matchedPathVertexIndices[right];
@@ -326,6 +338,7 @@ void Context::mapAllFrames(std::string outputFilePrefix, double sourceDeltaThres
         for (const auto& [nodeIndex, _] : results) {
             auto r = results[nodeIndex];
             outFile << nodeIndex << " " << r.reach.size() << " " << r.reachPath.size() << " " << r.matchedPath.size() << std::endl;
+            // outFile << nodeIndex << " " << r.reach.size() << " " << r.reachPath.size() << " " << r.matchedPath.size() << " " << r.matchedPathVertexIndices.size() << std::endl;
             for (const auto &p: r.reach) {
                 outFile << p.x << " " << p.y << " ";
             }
@@ -338,6 +351,10 @@ void Context::mapAllFrames(std::string outputFilePrefix, double sourceDeltaThres
                 outFile << p.x << " " << p.y << " ";
             }
             outFile << std::endl;
+            // for (const auto i1: r.matchedPathVertexIndices) {
+            //     outFile << i1 << " ";
+            // }
+            // outFile << std::endl;
             outFile << r.matchedSegmentRange.first << " " << r.matchedSegmentRange.second << " ";
             outFile << r.fixedSegmentRange.first << " " << r.fixedSegmentRange.second << std::endl;
         }
@@ -348,17 +365,21 @@ void Context::mapAllFrames(std::string outputFilePrefix, double sourceDeltaThres
     }
 }
 
-MappingViewer* Context::createMappingViewer(const std::string &resultPrefix, double sourceDeltaThreshold) {
+MappingViewer* Context::createMappingViewer(const std::string &resultPrefix, double sourceDeltaThreshold, double targetDeltaThreshold) {
     std::vector<std::shared_ptr<PrecomputedDisplayFrame>> frames;
     for (int i = 0; i < m_frames.size() - 1; i++) {
         auto n1 = m_frames[i]->getNetwork()->filter([sourceDeltaThreshold](const auto &node) {
             return node->getReach()->getDelta() >= sourceDeltaThreshold;
         });
+        auto n2 = m_frames[i + 1]->getNetwork()->filter([targetDeltaThreshold](const auto &node) {
+            return node->getReach()->getDelta() >= targetDeltaThreshold;
+        });
         std::cout << "Loading precomputed results for " << m_frames[i]->getName().toStdString() << std::endl;
         auto precomputed = PreComputedReachNetwork::createFrom(n1, resultPrefix + std::to_string(i) + "_mapped.txt");
         auto frame = std::make_shared<PrecomputedDisplayFrame>(
             m_frames[i]->getName() + "/" + m_frames[i + 1]->getName(),
-            precomputed
+            precomputed,
+            n2
         );
         frames.push_back(frame);
     }
