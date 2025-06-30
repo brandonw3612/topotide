@@ -19,6 +19,7 @@
 #include "ReachMapResult.h"
 #include "utils/ParallelComputer.hpp"
 #include "utils/VectorUtils.hpp"
+#include "SVG.h"
 
 void Context::openFrames(QStringList &fileNames) {
     // Not reachable in CLI
@@ -384,4 +385,23 @@ MappingViewer* Context::createMappingViewer(const std::string &resultPrefix, dou
         frames.push_back(frame);
     }
     return new MappingViewer(frames);
+}
+
+void Context::createSVGOutput(const std::string &resultPrefix, const std::string &outputPrefix,
+                    double sourceDeltaThreshold, double targetDeltaThreshold) {
+    for (int i = 0; i < m_frames.size() - 1; i++) {
+        auto n1 = m_frames[i]->getNetwork()->filter([sourceDeltaThreshold](const auto &node) {
+            return node->getReach()->getDelta() >= sourceDeltaThreshold;
+        });
+        auto n2 = m_frames[i + 1]->getNetwork()->filter([targetDeltaThreshold](const auto &node) {
+            return node->getReach()->getDelta() >= targetDeltaThreshold;
+        });
+        auto precomputed = PreComputedReachNetwork::createFrom(n1, resultPrefix + std::to_string(i) + "_mapped.txt");
+
+        SVG svg(outputPrefix, m_frames[i]->getName().toStdString(), m_frames[i + 1]->getName().toStdString(),
+                                 sourceDeltaThreshold, targetDeltaThreshold, precomputed);
+        svg.createMatchingOutputs(false);
+        svg.createMatchingOutputs(true);
+        // svg.createMatchingOutputsSeparated();
+    }
 }

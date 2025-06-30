@@ -33,6 +33,8 @@ public:
     void buildAbstractionForAllFrames();
     void mapAllFrames(std::string outputFilePrefix, double sourceDeltaThreshold = 20.0, double targetDeltaThreshold = 2.0, double adt = 10000.0);
     MappingViewer* createMappingViewer(const std::string &resultPrefix, double sourceDeltaThreshold = 20.0, double targetDeltaThreshold = 2.0);
+    void createSVGOutput(const std::string &resultPrefix, const std::string &outputPrefix,
+                        double sourceDeltaThreshold = 20.0, double targetDeltaThreshold = 2.0);
 
 private:
     static std::shared_ptr<RiverFrame> loadFrame(const QString& file_name, Units& units);

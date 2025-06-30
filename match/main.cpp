@@ -16,42 +16,12 @@ int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     Context context;
 
-    QString dataFolderPath = "/Users/brandon/Downloads/western-scheldt-data/";
+    QString dataFolderPath = "/home/karel/Downloads/western-scheldt-data/";
 
     // auto begin = std::chrono::steady_clock::now();
     QStringList frames;
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1955.txt.ascii");
     frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1964.txt.ascii");
     frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1968.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1972.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1976.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1980.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1982.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1986.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1988.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1989.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1990.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1992.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1994.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1996.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1997.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1998.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_1999.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_2000.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_2001.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_2002.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_2003.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_2004.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_2005.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_2006.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_2007.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_2008.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_2009.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_2010.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_2011.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_2012.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_2013.txt.ascii");
-    frames.append(dataFolderPath + "Westerschelde_ResampledGrid_2014.txt.ascii");
     context.openFrames(frames);
     context.openBoundary(dataFolderPath + "boundary4-corrected.txt");
     context.computeNetworkGraph();
@@ -73,12 +43,15 @@ int main(int argc, char *argv[]) {
     // dfv.show();
     // return app.exec();
 
-    auto prefix = "/Users/brandon/Desktop/50_5_20/";
+    auto resultPrefix = "/home/karel/Downloads/western-scheldt-data/";
+    auto SVGPrefix = "/home/karel/Downloads/western-scheldt-data/SVG/";
 
-    context.mapAllFrames(prefix, 50.0, 5.0, 20.0);
+    context.mapAllFrames(resultPrefix, 50.0, 5.0, 20.0);
+    context.createSVGOutput(resultPrefix, SVGPrefix, 50.0, 2.0);
+
     return 0;
 
-    auto viewer = context.createMappingViewer(prefix, 50.0);
+    auto viewer = context.createMappingViewer(resultPrefix, 50.0);
     viewer->show();
     return app.exec();
 }
