@@ -402,6 +402,7 @@ void Context::createSVGOutput(const std::string &resultPrefix, const std::string
                                  sourceDeltaThreshold, targetDeltaThreshold, precomputed);
         svg.createMatchingOutputs(false);
         svg.createMatchingOutputs(true);
+        svg.createBlackAfterNetworkOutput(n2);
         // svg.createMatchingOutputsSeparated();
     }
 }

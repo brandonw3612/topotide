@@ -23,10 +23,10 @@ void SVG::createMatchingOutputs(bool includeLabels) {
     std::string outputPathAfter;
     if (includeLabels) {
         outputPathBefore = std::format("{}Before{}-{}_{}_{}_labelled.svg", m_outputPrefix, m_beforeYear, m_afterYear, m_sourceDeltaThreshold, m_targetDeltaThreshold);
-        outputPathAfter = std::format("{}After{}-{}_{}_labelled_{}.svg", m_outputPrefix, m_beforeYear, m_afterYear, m_sourceDeltaThreshold, m_targetDeltaThreshold);
+        outputPathAfter = std::format("{}After{}-{}_{}_{}_labelled.svg", m_outputPrefix, m_beforeYear, m_afterYear, m_sourceDeltaThreshold, m_targetDeltaThreshold);
     } else {
         outputPathBefore = std::format("{}Before{}-{}_{}_{}_unlabelled.svg", m_outputPrefix, m_beforeYear, m_afterYear, m_sourceDeltaThreshold, m_targetDeltaThreshold);
-        outputPathAfter = std::format("{}After{}-{}_{}_unlabelled_{}.svg", m_outputPrefix, m_beforeYear, m_afterYear, m_sourceDeltaThreshold, m_targetDeltaThreshold);
+        outputPathAfter = std::format("{}After{}-{}_{}_{}_unlabelled.svg", m_outputPrefix, m_beforeYear, m_afterYear, m_sourceDeltaThreshold, m_targetDeltaThreshold);
     }
     
 
@@ -104,6 +104,22 @@ void SVG::createMatchingOutputs(bool includeLabels) {
     ofsBefore.close();
     ofsAfter << "</svg>" << std::endl;
     ofsAfter.close();
+}
+
+void SVG::createBlackAfterNetworkOutput(std::shared_ptr<ReachNetwork> &network) {
+    std::string outputPath = std::format("{}After{}-{}_{}_{}_black.svg", m_outputPrefix, m_beforeYear, m_afterYear, m_sourceDeltaThreshold, m_targetDeltaThreshold);
+    std::ofstream ofs(outputPath);
+    std::string SVGInitString = std::format("<svg xmlns='http://www.w3.org/2000/svg' width='{}' height='{}' viewBox='0 0 {} {}'>\n",
+                        m_width * m_scale,
+                        m_height * m_scale,
+                        m_width * m_scale,
+                        m_height * m_scale);
+    ofs << SVGInitString;
+    for (auto& [id, node] : network->getNodes()) {
+        drawPath(ofs, node->getReach()->getPoints(), "black");
+    }
+    ofs << "</svg>" << std::endl;
+    ofs.close();
 }
 
 void SVG::drawPath(std::ofstream &ofs, const std::vector<Point> &path, std::string color) {

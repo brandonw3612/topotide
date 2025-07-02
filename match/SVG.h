@@ -14,6 +14,7 @@ class SVG {
                             double sourceDeltaThreshold, double targetDeltaThreshold, 
                             const std::shared_ptr<PreComputedReachNetwork>& matching);
     void createMatchingOutputs(bool includeLabels);
+    void createBlackAfterNetworkOutput(std::shared_ptr<ReachNetwork>& network);
 
     private:
     int m_width;
