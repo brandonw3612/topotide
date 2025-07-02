@@ -117,9 +117,9 @@ void SVG::drawPath(std::ofstream &ofs, const std::vector<Point> &path, std::stri
 }
 
 void SVG::drawLegend(std::ofstream& ofs, std::map<double, std::string> colorAssignments) {
-    int boxHeight =  25 * m_colors.size() + 10;
-    ofs << std::format("<g id='legend' transform='translate({}, {})'>\n", m_width * 0.8, m_height * 0.58);
-    ofs << std::format("<rect x='0' y='0' width='{}' height='{}' fill='white' stroke='#000' stroke-width='0.5'/>\n", 135, boxHeight);
+    int boxHeight =  25 * m_colors.size() + 10 + 20;
+    ofs << std::format("<g id='legend' transform='translate({}, {})'>\n", m_width * 0.7, m_height * 0.58);
+    ofs << std::format("<rect x='0' y='0' width='{}' height='{}' fill='white' stroke='#000' stroke-width='0.5'/>\n", 180, boxHeight);
     
 
     std::map<std::string, std::pair<double, double>> colorToDeltaRange;
@@ -133,6 +133,7 @@ void SVG::drawLegend(std::ofstream& ofs, std::map<double, std::string> colorAssi
     
     int count = 0;
     double prevHighest = 0;
+    ofs << std::format("<text x='{}' y='{}' font-size='14' fill='black'>{}</text>\n", 10, 20, "&#948;-value of reaches");
     for (auto it = colorToDeltaRange.rbegin(); it != colorToDeltaRange.rend(); it++) {
         auto& color = it->first;
         auto& deltaRange = it->second;
