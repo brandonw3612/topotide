@@ -18,6 +18,7 @@ class SVG {
     private:
     int m_width;
     int m_height;
+    int m_scale;
     std::string m_outputPrefix;
     std::string m_beforeYear;
     std::string m_afterYear;

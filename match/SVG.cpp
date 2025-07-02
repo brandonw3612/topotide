@@ -9,6 +9,7 @@ SVG::SVG(const std::string &outputPrefix, const std::string &beforeYear, const s
         double sourceDeltaThreshold, double targetDeltaThreshold, const std::shared_ptr<PreComputedReachNetwork> &matching) {
     m_width = 1000;
     m_height = 500;
+    m_scale = 4;
     m_outputPrefix = outputPrefix;
     m_beforeYear = beforeYear;
     m_afterYear = afterYear;
@@ -32,10 +33,10 @@ void SVG::createMatchingOutputs(bool includeLabels) {
     std::ofstream ofsBefore(outputPathBefore);
     std::ofstream ofsAfter(outputPathAfter);
     std::string SVGInitString = std::format("<svg xmlns='http://www.w3.org/2000/svg' width='{}' height='{}' viewBox='0 0 {} {}'>\n",
-                        m_width,
-                        m_height,
-                        m_width,
-                        m_height);
+                        m_width * m_scale,
+                        m_height * m_scale,
+                        m_width * m_scale,
+                        m_height * m_scale);
     ofsBefore << SVGInitString;
     ofsAfter << SVGInitString;
 
@@ -52,7 +53,7 @@ void SVG::createMatchingOutputs(bool includeLabels) {
     }
 
     if (includeLabels) {
-        std::string labelGroupStart = "<g id='labels' font-size='12' fill='black'>\n";
+        std::string labelGroupStart = std::format("<g id='labels' font-size='{}' fill='black'>\n", 12 * m_scale);
         ofsBefore << labelGroupStart;
         ofsAfter << labelGroupStart;
 
@@ -86,9 +87,9 @@ void SVG::createMatchingOutputs(bool includeLabels) {
         for (auto& vertexMatch : vertexMatching) {
             auto& pointBefore = vertexMatch.first;
             auto& pointAfter = vertexMatch.second;
-            ofsBefore << std::format("<text x='{}' y='{}'>{}</text>\n", pointBefore.x, pointBefore.y, count);
+            ofsBefore << std::format("<text x='{}' y='{}'>{}</text>\n", pointBefore.x * m_scale, pointBefore.y * m_scale, count);
             if (pointAfter.x != -1) {
-                ofsAfter << std::format("<text x='{}' y='{}'>{}</text>\n", pointAfter.x, pointAfter.y, count);
+                ofsAfter << std::format("<text x='{}' y='{}'>{}</text>\n", pointAfter.x * m_scale, pointAfter.y * m_scale, count);
             }
             count++;
         }
@@ -108,18 +109,18 @@ void SVG::createMatchingOutputs(bool includeLabels) {
 void SVG::drawPath(std::ofstream &ofs, const std::vector<Point> &path, std::string color) {
     ofs << std::format("<g stroke='{}' stroke-width='2'>\n", color);  
     for (int i = 0; i < (int) path.size() - 1; ++i) {
-        ofs << std::format("<line x1='{:.0f}' y1='{:.0f}' x2='{:.0f}' y2='{:.0f}' />\n", path[i].x,
-                                                                        path[i].y ,
-                                                                        path[i + 1].x,
-                                                                        path[i + 1].y);
+        ofs << std::format("<line x1='{:.0f}' y1='{:.0f}' x2='{:.0f}' y2='{:.0f}' />\n", path[i].x * m_scale,
+                                                                        path[i].y  * m_scale,
+                                                                        path[i + 1].x * m_scale,
+                                                                        path[i + 1].y * m_scale);
     }
     ofs << "</g>\n";
 }
 
 void SVG::drawLegend(std::ofstream& ofs, std::map<double, std::string> colorAssignments) {
     int boxHeight =  25 * m_colors.size() + 10 + 20;
-    ofs << std::format("<g id='legend' transform='translate({}, {})'>\n", m_width * 0.7, m_height * 0.58);
-    ofs << std::format("<rect x='0' y='0' width='{}' height='{}' fill='white' stroke='#000' stroke-width='0.5'/>\n", 180, boxHeight);
+    ofs << std::format("<g id='legend' transform='translate({}, {})'>\n", m_width * 0.7 * m_scale, m_height * 0.58 * m_scale);
+    ofs << std::format("<rect x='0' y='0' width='{}' height='{}' fill='white' stroke='#000' stroke-width='0.5'/>\n", 180 * m_scale, boxHeight * m_scale);
     
 
     std::map<std::string, std::pair<double, double>> colorToDeltaRange;
@@ -133,7 +134,7 @@ void SVG::drawLegend(std::ofstream& ofs, std::map<double, std::string> colorAssi
     
     int count = 0;
     double prevHighest = 0;
-    ofs << std::format("<text x='{}' y='{}' font-size='14' fill='black'>{}</text>\n", 10, 20, "&#948;-value of reaches");
+    ofs << std::format("<text x='{}' y='{}' font-size='{}' fill='black'>{}</text>\n", 10 * m_scale, 20 * m_scale, 14 * m_scale, "&#948;-value of reaches");
     for (auto it = colorToDeltaRange.rbegin(); it != colorToDeltaRange.rend(); it++) {
         auto& color = it->first;
         auto& deltaRange = it->second;
@@ -149,8 +150,8 @@ void SVG::drawLegend(std::ofstream& ofs, std::map<double, std::string> colorAssi
         prevHighest = deltaRange.second;
     
 
-        ofs << std::format("<rect x='{}' y='{}' width='20' height='20' fill='{}'/>\n", 10, boxHeight - (25 + 25 * count), color);
-        ofs << std::format("<text x='{}' y='{}' font-size='12' fill='black'>{}</text>\n", 40, boxHeight - (10 + 25 * count), deltaRangeString);
+        ofs << std::format("<rect x='{}' y='{}' width='{}' height='{}' fill='{}'/>\n", 10 * m_scale, (boxHeight - (25 + 25 * count)) * m_scale, 20 * m_scale, 20 * m_scale, color);
+        ofs << std::format("<text x='{}' y='{}' font-size='{}' fill='black'>{}</text>\n", 40 * m_scale, (boxHeight - (10 + 25 * count)) * m_scale, 12 * m_scale, deltaRangeString);
 
         count++;
     }
